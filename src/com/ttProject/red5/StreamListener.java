@@ -16,14 +16,11 @@ import org.red5.server.net.rtmp.event.IRTMPEvent;
 import org.red5.server.stream.IStreamData;
 
 import com.ttProject.streaming.httptakstreaming.TakSegmentCreator;
-import com.ttProject.xuggle.in.red5.Red5DataQueue;
+import com.ttProject.xuggle.in.flv.FlvDataQueue;
 
 /**
  * red5の放送されているストリームを監視する動作
- * ここである程度動作を実施する。
- * やること。streamの先頭数パケットはそのままスルーして、動画と映像どっちのデータが存在しているか確認する。先頭からやりたいけど、どうしようもないので、次のようにする。
- * 1:始めのキーフレームはすて、無効10フレームはスルーする。(ただし先頭のキーフレームは保持しておく。)
- * 2:その間に送られてきた音声フレームと映像フレームで、要素があるか確認する。(どちらかが送られてきていない場合は、送られていないフレームは、もうこないものとする。(フレームがきた場合はxuggleは設定し直しが必要。))
+ * すべてのデータをflvの形にするために、ByteBufferの形に変更して、各モジュールにデータを渡す。
  * 
  * このクラスでflvHeaderとflvMetaDataは保持しておく。
  * 
@@ -37,7 +34,7 @@ public class StreamListener implements IStreamListener {
 	/** デフォルトストリームID */
 	private final static byte[] DEFAULT_STREAM_ID = {(byte)0x00, (byte)0x00, (byte)0x00};
 	/** xuggle用のデータqueue */
-	private Red5DataQueue red5DataQueue;
+	private FlvDataQueue red5DataQueue;
 	/** httpTakStreaming用のfileCreator */
 	private TakSegmentCreator ftFileCreator; // tag segmenterに渡すデータは生データにしたいので、このクラスで生データを扱うようにしたいところ。
 
@@ -51,16 +48,18 @@ public class StreamListener implements IStreamListener {
 	private void makeHeader() {
 		// flvHeaderを生成します。
 		FLVHeader flvHeader = new FLVHeader();
-		flvHeader.setFlagAudio(audioFirstTag != null);
-		flvHeader.setFlagVideo(videoFirstTag != null);
-		// headerが更新された場合ftFileCreatorに通知しておく。
-		// byte配列を復元する。
+		// TODO transcoderの方で、audioパケットがながれてきたら、audioがあるものとして動作するようにしますが、入力データは一定のままとして扱いたい。
+		// なので、ここでのFlvHeaderとしては、少々不正になる可能性がありますが、audioもvideoも存在するものとして動作させます。
+		flvHeader.setFlagAudio(true);
+		flvHeader.setFlagVideo(true);
+		// byteBufferにすることで各所にデータを送ります。
 		ByteBuffer header = ByteBuffer.allocate(HEADER_LENGTH + 4);
 		flvHeader.write(header);
 		ftFileCreator.writeHeaderPacket(header);
+		red5DataQueue.putHeaderData(header);
 		header.clear();
 		header = null;
-		red5DataQueue.putHeaderData(flvHeader, metaData, videoFirstTag, audioFirstTag);
+		
 	}
 	/**
 	 * tagデータを確認します。
@@ -119,7 +118,6 @@ public class StreamListener implements IStreamListener {
 		}
 		catch (Exception e) {
 		}
-		red5DataQueue.putTagData(tag);
 	}
 	/**
 	 * パケットデータをうけとったときの動作

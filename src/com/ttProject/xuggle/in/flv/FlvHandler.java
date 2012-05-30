@@ -1,4 +1,4 @@
-package com.ttProject.xuggle.in.red5;
+package com.ttProject.xuggle.in.flv;
 
 import com.xuggle.xuggler.io.IURLProtocolHandler;
 
@@ -6,7 +6,7 @@ import com.xuggle.xuggler.io.IURLProtocolHandler;
  * 実際にffmpegからデータの要求等を実行されるクラス
  * @author taktod
  */
-public class Red5Handler implements IURLProtocolHandler {
+public class FlvHandler implements IURLProtocolHandler {
 	/**
 	 * 閉じる要求がきたときの処理
 	 * @return -1エラー 0以上それ以外

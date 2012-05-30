@@ -1,4 +1,4 @@
-package com.ttProject.xuggle.in.red5;
+package com.ttProject.xuggle.in.flv;
 
 import com.xuggle.xuggler.io.IURLProtocolHandler;
 import com.xuggle.xuggler.io.IURLProtocolHandlerFactory;
@@ -10,9 +10,9 @@ import com.xuggle.xuggler.io.URLProtocolManager;
  * @author taktod
  *
  */
-public class Red5HandlerFactory implements IURLProtocolHandlerFactory{
+public class FlvHandlerFactory implements IURLProtocolHandlerFactory{
 	/** シングルトンインスタンス */
-	private static Red5HandlerFactory instance = new Red5HandlerFactory();
+	private static FlvHandlerFactory instance = new FlvHandlerFactory();
 	/** このFactoryが扱うプロトコル名 */
 	public static final String DEFAULT_PROTOCOL="redfive";
 	/**
@@ -26,7 +26,7 @@ public class Red5HandlerFactory implements IURLProtocolHandlerFactory{
 	 * factoryの取得
 	 * @return
 	 */
-	public static Red5HandlerFactory getFactory() {
+	public static FlvHandlerFactory getFactory() {
 		if(instance == null) {
 			throw new RuntimeException("no redfile factory.");
 		}
