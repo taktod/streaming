@@ -17,7 +17,14 @@ public class TakSegmentCreator {
 	/**
 	 * fthファイルを作成する。
 	 * @param buf 追加するbyteデータ
+	 * @param video 映像のfirstパケットデータ (AVC用:他のコーデックでは必要ないが、送ります。)
+	 * @param audio 音声のfirstパケットデータ (AAC用:他のコーデックでは必要ないが、送ります。)
 	 */
-	public void writeHeaderPacket(ByteBuffer buf) {
+	public void writeHeaderPacket(ByteBuffer buf, ByteBuffer video, ByteBuffer audio) {
+	}
+	/**
+	 * ストリームが止まったときの動作
+	 */
+	public void close() {
 	}
 }

@@ -1,8 +1,6 @@
 package com.ttProject.red5;
 
 import java.nio.ByteBuffer;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.red5.io.ITag;
@@ -34,18 +32,57 @@ public class StreamListener implements IStreamListener {
 	/** デフォルトストリームID */
 	private final static byte[] DEFAULT_STREAM_ID = {(byte)0x00, (byte)0x00, (byte)0x00};
 	/** xuggle用のデータqueue */
-	private FlvDataQueue red5DataQueue;
+	private FlvDataQueue flvDataQueue;
 	/** httpTakStreaming用のfileCreator */
-	private TakSegmentCreator ftFileCreator; // tag segmenterに渡すデータは生データにしたいので、このクラスで生データを扱うようにしたいところ。
+	private TakSegmentCreator takSegmentCreator; // tag segmenterに渡すデータは生データにしたいので、このクラスで生データを扱うようにしたいところ。
+	/** 動作ストリームを保持します。 */
+	IBroadcastStream stream;
 
 	// このストリームとひもづいているRed5DataQueueとFlvByteCreatorを保持しておく必要がある。
-	private Set<ITag> metaData = new HashSet<ITag>();
 	private ITag audioFirstTag = null; // それぞれの初期タグを保持しておく
 	private ITag videoFirstTag = null; // それぞれの初期タグを保持しておく
 	/**
+	 * コンストラクタ
+	 */
+	public StreamListener(IBroadcastStream stream, FlvDataQueue flvDataQueue, TakSegmentCreator takSegmentCreator) {
+		if(stream == null) {
+			throw new RuntimeException("ストリームがありません。");
+		}
+		if(flvDataQueue == null && takSegmentCreator == null) {
+			throw new RuntimeException("動作対象のモジュールの設定がありません。動作させる意味がありません。");
+		}
+		// 保持する必要なさそうなので、放置しておく。
+		this.stream = stream;
+		// 初期時に利用するモジュールを設定してもらう。必要なければNULLをいれる。
+		this.flvDataQueue = flvDataQueue;
+		this.takSegmentCreator = takSegmentCreator;
+		// headerを構築しておきます。
+		ByteBuffer header = makeHeaderByteBuffer();
+		if(flvDataQueue != null) {
+			flvDataQueue.putHeaderData(header);
+		}
+		if(takSegmentCreator != null) {
+			takSegmentCreator.writeHeaderPacket(header, null, null);
+		}
+		// streamの監視を開始します。
+		stream.addStreamListener(this);
+	}
+	/**
+	 * 必要なくなったらcloseします。
+	 */
+	public void close() {
+		stream.removeStreamListener(this);
+		if(flvDataQueue != null) {
+			flvDataQueue.close();
+		}
+		if(takSegmentCreator != null) {
+			takSegmentCreator.close();
+		}
+	}
+	/**
 	 * headerを作成する。
 	 */
-	private void makeHeader() {
+	private ByteBuffer makeHeaderByteBuffer() {
 		// flvHeaderを生成します。
 		FLVHeader flvHeader = new FLVHeader();
 		// TODO transcoderの方で、audioパケットがながれてきたら、audioがあるものとして動作するようにしますが、入力データは一定のままとして扱いたい。
@@ -55,49 +92,34 @@ public class StreamListener implements IStreamListener {
 		// byteBufferにすることで各所にデータを送ります。
 		ByteBuffer header = ByteBuffer.allocate(HEADER_LENGTH + 4);
 		flvHeader.write(header);
-		ftFileCreator.writeHeaderPacket(header);
-		red5DataQueue.putHeaderData(header);
-		header.clear();
-		header = null;
-		
+		return header;
 	}
 	/**
-	 * tagデータを確認します。
+	 * Tagの情報からByteBufferのデータを構築し、応答します。
 	 * @param tag
+	 * @return
 	 */
-	private void checkTag(ITag tag) {
-		byte dataType = tag.getDataType();
-		// httpTakStreamingはそのまま動作してOKなので(あとでメタデータやheaderデータがきても問題ない。)
-		if(audioFirstTag == null && dataType != ITag.TYPE_AUDIO) {
-			// 新規にタグを発見したので、updateが必要
-			audioFirstTag = tag;
-			// headerを作り直す。
-			makeHeader();
+	private ByteBuffer makeTagByteBuffer(ITag tag) {
+		if(tag == null) {
+			return null;
 		}
-		if(videoFirstTag == null && dataType != ITag.TYPE_VIDEO) {
-			// 新規にタグを発見したので、updateが必要
-			videoFirstTag = tag;
-			// headerを作り直す
-			makeHeader();
-		}
-		if(dataType != ITag.TYPE_METADATA) {
-			// metaデータ記録しておく。
-			metaData.add(tag);
-		}
-		// codec情報等解析することが可能ですが、今回は興味がないのでパスします。
-		// タグデータをbyteBufferにいれこんで渡します。
 		try {
+			ByteBuffer tagBuffer = null;
+			// サイズの計算
 			int bodySize = tag.getBodySize();
-			// 全体のサイズはヘッダ長(11バイト) + データ長 + 全体のサイズ(4バイト)で構成されます。
 			int totalTagSize = TAG_HEADER_LENGTH + bodySize + 4;
-			ByteBuffer tagBuffer = ByteBuffer.allocate(totalTagSize);
+			tagBuffer = ByteBuffer.allocate(totalTagSize);
+			// tagのタイプ設定
+			byte dataType = tag.getDataType();
+			// タイムスタンプの取得
 			int timestamp = tag.getTimestamp();
-			
+			// タグの実体を取得しておきます。
 			byte[] bodyBuf = null;
 			if(bodySize > 0) {
 				bodyBuf = new byte[bodySize];
 				tag.getBody().get(bodyBuf);
 			}
+			// 実際のデータの挿入
 			// タイプ メタ0x12 音声0x80 映像0x90など(1バイト)
 			IOUtils.writeUnsignedByte(tagBuffer, dataType);
 			// データサイズ(3バイト)
@@ -114,9 +136,44 @@ public class StreamListener implements IStreamListener {
 			tagBuffer.putInt(TAG_HEADER_LENGTH + bodySize);
 			// 参照カウントを先頭に戻す。
 			tagBuffer.flip();
-			ftFileCreator.writeTagData(tagBuffer);
+			return tagBuffer;
 		}
 		catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	/**
+	 * tagデータを確認します。
+	 * @param tag
+	 */
+	private void checkTag(ITag tag) {
+		byte dataType = tag.getDataType();
+		// httpTakStreamingはそのまま動作してOKなので(あとでメタデータやheaderデータがきても問題ない。)
+		if(audioFirstTag == null && dataType != ITag.TYPE_AUDIO) {
+			// TODO ここの部分は、コーデック情報等がいれかわったときにも変更する必要があるかもしれない。
+			// 新規にタグを発見したので、updateが必要
+			audioFirstTag = tag;
+			if(takSegmentCreator != null) {
+				takSegmentCreator.writeHeaderPacket(makeHeaderByteBuffer(), makeTagByteBuffer(videoFirstTag), makeTagByteBuffer(audioFirstTag));
+			}
+		}
+		if(videoFirstTag == null && dataType != ITag.TYPE_VIDEO) {
+			// TODO ここの部分は、コーデック情報等がいれかわったときにも変更する必要があるかもしれない。
+			// 新規にタグを発見したので、updateが必要
+			videoFirstTag = tag;
+			if(takSegmentCreator != null) {
+				takSegmentCreator.writeHeaderPacket(makeHeaderByteBuffer(), makeTagByteBuffer(videoFirstTag), makeTagByteBuffer(audioFirstTag));
+			}
+		}
+		// codec情報等解析することが可能ですが、今回は興味がないのでパスします。
+		// タグデータをbyteBufferにいれこんで渡します。
+		ByteBuffer tagBuffer = makeTagByteBuffer(tag);
+		if(takSegmentCreator != null) {
+			takSegmentCreator.writeTagData(tagBuffer);
+		}
+		if(flvDataQueue != null) {
+			flvDataQueue.putTagData(tagBuffer);
 		}
 	}
 	/**
@@ -144,6 +201,7 @@ public class StreamListener implements IStreamListener {
 			checkTag(tag);
 		}
 		catch (Exception e) {
+			e.printStackTrace();
 		}
 	}
 }

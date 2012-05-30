@@ -5,7 +5,7 @@ import com.xuggle.xuggler.io.IURLProtocolHandlerFactory;
 import com.xuggle.xuggler.io.URLProtocolManager;
 
 /**
- * Red5のストリームデータをffmpegに流し込むための動作
+ * FLVのストリームデータをffmpegに流し込むための動作
  * ProtocolHandlerを応答するFactoryクラス(基本シングルトン)
  * @author taktod
  *
@@ -14,7 +14,7 @@ public class FlvHandlerFactory implements IURLProtocolHandlerFactory{
 	/** シングルトンインスタンス */
 	private static FlvHandlerFactory instance = new FlvHandlerFactory();
 	/** このFactoryが扱うプロトコル名 */
-	public static final String DEFAULT_PROTOCOL="redfive";
+	public static final String DEFAULT_PROTOCOL="flvStream";
 	/**
 	 * ffmpegからurlが合致する場合にhandlerを求められます。
 	 */
