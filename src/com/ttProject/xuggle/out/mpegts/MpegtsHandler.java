@@ -1,21 +1,8 @@
-package com.ttProject.xuggle.in.flv;
+package com.ttProject.xuggle.out.mpegts;
 
 import com.xuggle.xuggler.io.IURLProtocolHandler;
 
-/**
- * 実際にffmpegからデータの要求等を実行されるクラス
- * @author taktod
- */
-public class FlvHandler implements IURLProtocolHandler {
-	/** 入力マネージャー */
-	private FlvDataInputManager manager;
-	/**
-	 * コンストラクタ
-	 * @param manager
-	 */
-	public FlvHandler(FlvDataInputManager manager) {
-		this.manager = manager;
-	}
+public class MpegtsHandler implements IURLProtocolHandler {
 	/**
 	 * 閉じる要求がきたときの処理
 	 * @return -1エラー 0以上それ以外

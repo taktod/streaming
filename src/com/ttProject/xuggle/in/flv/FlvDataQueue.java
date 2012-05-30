@@ -18,9 +18,6 @@ public class FlvDataQueue {
 	/**
 	 * headerデータを更新します。
 	 * @param header
-	 * @param metaData
-	 * @param videoFirstTag
-	 * @param audioFirstTag
 	 */
 	public void putHeaderData(ByteBuffer header) {
 		// コンバート開始前のデータ待ちになっている状態の場合はflvHeaderを保持しておかないとだめ。(保持しておいて、スタートするタイミングですべて書き込む方が吉)

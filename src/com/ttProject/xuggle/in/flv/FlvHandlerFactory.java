@@ -1,5 +1,8 @@
 package com.ttProject.xuggle.in.flv;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import com.xuggle.xuggler.io.IURLProtocolHandler;
 import com.xuggle.xuggler.io.IURLProtocolHandlerFactory;
 import com.xuggle.xuggler.io.URLProtocolManager;
@@ -8,19 +11,33 @@ import com.xuggle.xuggler.io.URLProtocolManager;
  * FLVのストリームデータをffmpegに流し込むための動作
  * ProtocolHandlerを応答するFactoryクラス(基本シングルトン)
  * @author taktod
- *
  */
 public class FlvHandlerFactory implements IURLProtocolHandlerFactory{
 	/** シングルトンインスタンス */
 	private static FlvHandlerFactory instance = new FlvHandlerFactory();
 	/** このFactoryが扱うプロトコル名 */
-	public static final String DEFAULT_PROTOCOL="flvStream";
+	public static final String DEFAULT_PROTOCOL = "flvStreamInput";
+	/** 内部で処理しているFlvDataInputManagerの保持 */
+	private final Map<String, FlvDataInputManager> managers = new ConcurrentHashMap<String, FlvDataInputManager>();
 	/**
 	 * ffmpegからurlが合致する場合にhandlerを求められます。
 	 */
 	@Override
 	public IURLProtocolHandler getHandler(String protocol, String url, int flags) {
+		String streamName = URLProtocolManager.getResourceFromURL(url);
+		FlvDataInputManager manager = managers.get(streamName);
+		if(manager != null) {
+			return manager.getHandler();
+		}
 		return null;
+	}
+	/**
+	 * コンストラクタ
+	 */
+	private FlvHandlerFactory() {
+		// URLProtocolManagerに登録することで、今後(redfile:xxxx)のURL向けの処理はこのfactoryが返すHandlerを利用して動作するようになります。
+		URLProtocolManager manager = URLProtocolManager.getManager();
+		manager.registerFactory(DEFAULT_PROTOCOL, instance);
 	}
 	/**
 	 * factoryの取得
@@ -28,11 +45,15 @@ public class FlvHandlerFactory implements IURLProtocolHandlerFactory{
 	 */
 	public static FlvHandlerFactory getFactory() {
 		if(instance == null) {
-			throw new RuntimeException("no redfile factory.");
+			throw new RuntimeException("no flvStreamInput factory.");
 		}
-		// URLProtocolManagerに登録することで、今後(redfile:xxxx)のURL向けの処理はこのfactoryが返すHandlerを利用して動作するようになります。
-		URLProtocolManager manager = URLProtocolManager.getManager();
-		manager.registerFactory(DEFAULT_PROTOCOL, instance);
 		return instance;
+	}
+	/**
+	 * マネージャーを登録する。
+	 * @param manager
+	 */
+	public void registerManager(String name, FlvDataInputManager manager) {
+		managers.put(name, manager);
 	}
 }

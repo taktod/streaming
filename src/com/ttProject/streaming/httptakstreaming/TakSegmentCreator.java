@@ -8,19 +8,19 @@ import java.nio.ByteBuffer;
  */
 public class TakSegmentCreator {
 	/**
-	 * ftmファイルを作成する。
-	 * @param buf ヘッダ情報となるbyteデータ
-	 */
-	public void writeTagData(ByteBuffer buf) {
-		// ftmファイルを作成する。入力データはflv形式のおのおののパケット
-	}
-	/**
 	 * fthファイルを作成する。
 	 * @param buf 追加するbyteデータ
 	 * @param video 映像のfirstパケットデータ (AVC用:他のコーデックでは必要ないが、送ります。)
 	 * @param audio 音声のfirstパケットデータ (AAC用:他のコーデックでは必要ないが、送ります。)
 	 */
 	public void writeHeaderPacket(ByteBuffer buf, ByteBuffer video, ByteBuffer audio) {
+	}
+	/**
+	 * ftmファイルを作成する。
+	 * @param buf ヘッダ情報となるbyteデータ
+	 */
+	public void writeTagData(ByteBuffer buf) {
+		// ftmファイルを作成する。入力データはflv形式のおのおののパケット
 	}
 	/**
 	 * ストリームが止まったときの動作
