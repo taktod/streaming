@@ -9,6 +9,8 @@ public class FlvDataInputManager {
 	/** このqueueにbyteBufferとしたflvデータをいれていけば、勝手に処理されます。 */
 	private FlvDataQueue flvDataQueue;
 	private FlvHandler flvHandler;
+	
+	// 変換元データに必要なプロパティは特にない。
 	/**
 	 * FlvDataの入力ストリームを管理するマネージャー
 	 * @param name

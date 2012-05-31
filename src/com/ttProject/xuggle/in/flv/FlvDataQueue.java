@@ -38,8 +38,10 @@ public class FlvDataQueue {
 	 */
 	public void close() {
 		// 特にすることはないか？
-		dataQueue.clear(); // dataQueueの待ちがある場合にこまる。
-		dataQueue = null;
+		if(dataQueue != null) {
+			dataQueue.clear(); // dataQueueの待ちがある場合にこまる。
+			dataQueue = null;
+		}
 	}
 	/**
 	 * queueから要素を読み込んで処理を実行する。

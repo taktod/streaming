@@ -18,7 +18,7 @@ public class MpegtsHandlerFactory implements IURLProtocolHandlerFactory {
 	 */
 	@Override
 	public IURLProtocolHandler getHandler(String protocol, String url, int flags) {
-		return null;
+		return new MpegtsHandler();
 	}
 	/**
 	 * コンストラクタ

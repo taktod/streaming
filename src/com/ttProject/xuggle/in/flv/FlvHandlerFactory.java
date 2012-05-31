@@ -25,19 +25,23 @@ public class FlvHandlerFactory implements IURLProtocolHandlerFactory{
 	@Override
 	public IURLProtocolHandler getHandler(String protocol, String url, int flags) {
 		String streamName = URLProtocolManager.getResourceFromURL(url);
+		System.out.println(streamName);
 		FlvDataInputManager manager = managers.get(streamName);
 		if(manager != null) {
+			System.out.println("managerあるよ");
 			return manager.getHandler();
 		}
+		System.out.println("managerないよ");
 		return null;
 	}
 	/**
 	 * コンストラクタ
 	 */
 	private FlvHandlerFactory() {
+		System.out.println("flvHandlerFactoryを登録しておきます。");
 		// URLProtocolManagerに登録することで、今後(redfile:xxxx)のURL向けの処理はこのfactoryが返すHandlerを利用して動作するようになります。
 		URLProtocolManager manager = URLProtocolManager.getManager();
-		manager.registerFactory(DEFAULT_PROTOCOL, instance);
+		manager.registerFactory(DEFAULT_PROTOCOL, this);
 	}
 	/**
 	 * factoryの取得

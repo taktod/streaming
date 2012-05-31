@@ -14,6 +14,7 @@ import org.red5.server.net.rtmp.event.IRTMPEvent;
 import org.red5.server.stream.IStreamData;
 
 import com.ttProject.streaming.httptakstreaming.TakSegmentCreator;
+import com.ttProject.xuggle.Transcoder;
 import com.ttProject.xuggle.in.flv.FlvDataQueue;
 
 /**
@@ -37,6 +38,8 @@ public class StreamListener implements IStreamListener {
 	private TakSegmentCreator takSegmentCreator; // tag segmenterに渡すデータは生データにしたいので、このクラスで生データを扱うようにしたいところ。
 	/** 動作ストリームを保持します。 */
 	IBroadcastStream stream;
+	/** Transcoderを保持します。 */
+	private Transcoder transcoder;
 
 	// このストリームとひもづいているRed5DataQueueとFlvByteCreatorを保持しておく必要がある。
 	private ITag audioFirstTag = null; // それぞれの初期タグを保持しておく
@@ -66,11 +69,21 @@ public class StreamListener implements IStreamListener {
 		}
 		// streamの監視を開始します。
 		stream.addStreamListener(this);
+		
+		// transcodeを実行する。
+		transcoder = new Transcoder();
+		Thread transcodeThread = new Thread(transcoder);
+		transcodeThread.setDaemon(true);
+		transcodeThread.start();
 	}
 	/**
 	 * 必要なくなったらcloseします。
 	 */
 	public void close() {
+		if(transcoder != null) {
+			transcoder.close();
+			transcoder = null;
+		}
 		stream.removeStreamListener(this);
 		if(flvDataQueue != null) {
 			flvDataQueue.close();

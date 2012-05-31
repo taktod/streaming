@@ -1,5 +1,9 @@
 package com.ttProject.xuggle.in.flv;
 
+import java.nio.ByteBuffer;
+
+import org.red5.io.utils.HexDump;
+
 import com.xuggle.xuggler.io.IURLProtocolHandler;
 
 /**
@@ -9,6 +13,8 @@ import com.xuggle.xuggler.io.IURLProtocolHandler;
 public class FlvHandler implements IURLProtocolHandler {
 	/** 入力マネージャー */
 	private FlvDataInputManager manager;
+	/** 最終読み込みバッファの残り */
+	private ByteBuffer lastReadBuffer = null;
 	/**
 	 * コンストラクタ
 	 * @param manager
@@ -32,7 +38,7 @@ public class FlvHandler implements IURLProtocolHandler {
 	 */
 	@Override
 	public boolean isStreamed(String url, int flags) {
-		return false;
+		return true;
 	}
 	/**
 	 * ファイルオープン処理(ffmpegから呼び出されます。)
@@ -42,6 +48,7 @@ public class FlvHandler implements IURLProtocolHandler {
 	 */
 	@Override
 	public int open(String url, int flags) {
+		System.out.println("openトライ");
 		return 0;
 	}
 	/**
@@ -53,7 +60,39 @@ public class FlvHandler implements IURLProtocolHandler {
 	 */
 	@Override
 	public int read(byte[] buf, int size) {
-		return 0;
+		System.out.println("読み込みトライ" + size);
+		// size分までしか読み込みする必要がないので、byteBufferとして、size分メモリーを準備しておく。
+		ByteBuffer readBuffer = ByteBuffer.allocate(size);
+		while(readBuffer.hasRemaining()) {
+			// 読み込み可能byteがsizeより小さい場合
+			// queueからデータを取り出して、応答できる限り応答する。
+			ByteBuffer packet = manager.getQueue().read();
+			if(packet == null) {
+				// 読み出せるパケットがなくなったら脱出する。
+				System.out.println("読み出せるパケットがなくなった。");
+				break;
+			}
+			System.out.println("packet pos" + packet.position());
+			System.out.println("packet" + packet.limit());
+			if(readBuffer.remaining() < packet.limit()) {
+				System.out.println("たりないから、端数のみ読み込み処理する。");
+				byte[] readBytes = new byte[readBuffer.remaining()];
+				packet.get(readBytes);
+				readBuffer.put(readBytes);
+				// 読み込みがあふれる場合
+				lastReadBuffer = packet;
+				break;
+			}
+			else {
+				// まだ読み込み可能な場合
+				System.out.println("余裕があるので、そのまま書き込む");
+				readBuffer.put(packet);
+			}
+		}
+		readBuffer.flip();
+		int length = readBuffer.limit();
+		readBuffer.get(buf, 0, length);
+		return length;
 	}
 	/**
 	 * ffmpegからシークの要求があった場合の処理
@@ -63,7 +102,7 @@ public class FlvHandler implements IURLProtocolHandler {
 	 */
 	@Override
 	public long seek(long offset, int whence) {
-		return 0;
+		return -1;
 	}
 	/**
 	 * 書き込み(ffmpegから出力される場合に呼び出されます。)
