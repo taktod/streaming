@@ -18,7 +18,7 @@ public class FlvHandlerFactory implements IURLProtocolHandlerFactory{
 	/** このFactoryが扱うプロトコル名 */
 	public static final String DEFAULT_PROTOCOL = "flvStreamInput";
 	/** 内部で処理しているFlvDataInputManagerの保持 */
-	private final Map<String, FlvDataInputManager> managers = new ConcurrentHashMap<String, FlvDataInputManager>();
+	private final Map<String, FlvInputManager> managers = new ConcurrentHashMap<String, FlvInputManager>();
 	/**
 	 * ffmpegからurlが合致する場合にhandlerを求められます。
 	 */
@@ -26,7 +26,7 @@ public class FlvHandlerFactory implements IURLProtocolHandlerFactory{
 	public IURLProtocolHandler getHandler(String protocol, String url, int flags) {
 		String streamName = URLProtocolManager.getResourceFromURL(url);
 		System.out.println(streamName);
-		FlvDataInputManager manager = managers.get(streamName);
+		FlvInputManager manager = managers.get(streamName);
 		if(manager != null) {
 			System.out.println("managerあるよ");
 			return manager.getHandler();
@@ -57,7 +57,7 @@ public class FlvHandlerFactory implements IURLProtocolHandlerFactory{
 	 * マネージャーを登録する。
 	 * @param manager
 	 */
-	public void registerManager(String name, FlvDataInputManager manager) {
+	public void registerManager(String name, FlvInputManager manager) {
 		managers.put(name, manager);
 	}
 }

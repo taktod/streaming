@@ -12,14 +12,14 @@ import com.xuggle.xuggler.io.IURLProtocolHandler;
  */
 public class FlvHandler implements IURLProtocolHandler {
 	/** 入力マネージャー */
-	private FlvDataInputManager manager;
+	private FlvInputManager manager;
 	/** 最終読み込みバッファの残り */
 	private ByteBuffer lastReadBuffer = null;
 	/**
 	 * コンストラクタ
 	 * @param manager
 	 */
-	public FlvHandler(FlvDataInputManager manager) {
+	public FlvHandler(FlvInputManager manager) {
 		this.manager = manager;
 	}
 	/**
