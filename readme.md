@@ -20,3 +20,11 @@ audioのみの動作できました。この場合でもデータの入力は問
 ・transcoderを作成し、変換対象としては、どんなメッセージでも動作するようにしておく。
 ・中途でデータが追加された場合出力をそれにあわせて、再生成して、動作させてやる。
 transcoderの方で出力データを調整するので、Red5DataQueueの動作は、flvバイトデータをいつでもうけいれて、データを出力するという形にする。
+
+# パッケージの覚え書き
+
+com.ttProject.red5 red5関連の動作
+com.ttProject.flazr flazr関連の動作
+com.ttProject.xuggle xuggle関連の動作
+com.ttProject.streaming segment作成関連の動作
+com.ttProject.output 出力調整の動作

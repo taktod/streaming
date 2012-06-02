@@ -9,10 +9,8 @@ import org.slf4j.LoggerFactory;
 
 import com.ttProject.xuggle.Transcoder;
 import com.ttProject.xuggle.in.flv.FlvDataQueue;
-import com.ttProject.xuggle.in.flv.FlvDataQueue_Test;
 import com.ttProject.xuggle.in.flv.FlvHandler;
 import com.ttProject.xuggle.in.flv.FlvHandlerFactory;
-import com.ttProject.xuggle.in.flv.FlvHandler_Test;
 import com.ttProject.xuggle.in.flv.FlvInputManager;
 import com.ttProject.xuggle.out.mpegts.MpegtsHandlerFactory;
 import com.ttProject.xuggle.out.mpegts.MpegtsOutputManager;
@@ -56,15 +54,13 @@ public class Red5TranscodeManager {
 		FlvHandlerFactory flvFactory = FlvHandlerFactory.getFactory();
 		FlvDataQueue inputDataQueue = new FlvDataQueue();
 		FlvHandler flvHandler = new FlvHandler(inputDataQueue);
-//		FlvHandler flvHandler = new FlvHandler_Test(inputDataQueue);
 		flvFactory.registerHandler(stream.getName(), flvHandler);
 
 		// MpegtsHandlerFactoryに処理のHandlerを登録します。(今回はコンテナを開くだけで処理をしない。)
 		// こっちは適当
-		MpegtsHandlerFactory mpegtsFactory = MpegtsHandlerFactory.getFactory();
-		
+		MpegtsHandlerFactory.getFactory();
+
 		// streamListenerを起動させておきおます。
-//		StreamListener listener = new StreamListener(stream, new FlvDataQueue_Test("/Users/taktod/output_row.flv"), null);
 		StreamListener listener = new StreamListener(stream, inputDataQueue, null);
 		listener.open();
 		Transcoder transcoder = new Transcoder(new FlvInputManager(), mpegtsManager, stream.getName());

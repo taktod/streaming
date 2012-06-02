@@ -15,7 +15,7 @@ import org.red5.server.net.rtmp.event.VideoData;
 import org.red5.server.net.rtmp.event.VideoData.FrameType;
 import org.red5.server.stream.IStreamData;
 
-import com.ttProject.streaming.httptakstreaming.TakSegmentCreator;
+import com.ttProject.streaming.TakSegmentCreator;
 //import com.ttProject.xuggle.Transcoder;
 import com.ttProject.xuggle.in.flv.FlvDataQueue;
 

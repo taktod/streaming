@@ -1,4 +1,4 @@
-package com.ttProject.streaming.httptakstreaming;
+package com.ttProject.streaming;
 
 import java.nio.ByteBuffer;
 

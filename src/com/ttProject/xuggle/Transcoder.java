@@ -29,31 +29,42 @@ import com.xuggle.xuggler.SimpleMediaFile;
  */
 public class Transcoder implements Runnable {
 	private final Logger logger = LoggerFactory.getLogger(Transcoder.class);
-	private IContainer inputContainer = null;
-	private IContainer outputContainer = null;
+	// 外部から指定されるもの。
 	private ISimpleMediaFile outputStreamInfo;
 	private Map<String, String> videoProperties = new HashMap<String, String>();
 	private Map<IStreamCoder.Flags, Boolean> videoFlags = new HashMap<IStreamCoder.Flags, Boolean>();
-	private IStreamCoder inputAudioCoder = null;
-	private IStreamCoder inputVideoCoder = null;
-	private IStreamCoder outputAudioCoder = null;
-	private IStreamCoder outputVideoCoder = null;
-	private boolean isVideoResamplerChecked = false;
-	private boolean isAudioResamplerChecked = false;
-	private IVideoResampler videoResampler = null;
-	private IAudioResampler audioResampler = null;
-	private int audioStreamId = -1;
-	private int videoStreamId = -1;
-	
-	private volatile boolean keepRunning = true;
-	
+	// 外部から指定されるもの。カスタム
 	private final String inputProtocol;
 	private final String inputFormat;
 	private final String outputProtocol;
 	private final String outputFormat;
 	private final String taskName;
+
+	// 内部で定義するもの。
+	// 入力データ編
+	private IContainer inputContainer = null;
+	private IStreamCoder inputAudioCoder = null;
+	private IStreamCoder inputVideoCoder = null;
+	private int audioStreamId = -1;
+	private int videoStreamId = -1;
+
+	// 出力データ編
+	private IContainer outputContainer = null;
+	private IStreamCoder outputAudioCoder = null;
+	private IStreamCoder outputVideoCoder = null;
+	
+	// リサンプラー編
+	private boolean isVideoResamplerChecked = false;
+	private boolean isAudioResamplerChecked = false;
+	private IVideoResampler videoResampler = null;
+	private IAudioResampler audioResampler = null;
+
+	// 動作定義
+	private volatile boolean keepRunning = true;
+	
 	/**
 	 * インプット要素がなんであるか指定が必要
+	 * 本来はここに、各種コンバート(jpegmp3ストリームだけか？)の指定が必要
 	 */
 	public Transcoder(
 			FlvInputManager inputManager,
@@ -79,7 +90,7 @@ public class Transcoder implements Runnable {
 		try {
 			logger.info("transcoderを起動しました。");
 			// 読み込み用のコンテナをオープン
-			openContainer();
+			openInputContainer();
 			// 変換を実行
 			transcode();
 			// 終わったら変換を止める。
@@ -102,29 +113,8 @@ public class Transcoder implements Runnable {
 	 */
 	private void closeAll() {
 		try {
-			if(outputContainer != null) {
-				outputContainer.writeTrailer();
-			}
-			if(outputAudioCoder != null) {
-				outputAudioCoder.close();
-				outputAudioCoder = null;
-			}
-			if(inputAudioCoder != null) {
-				inputAudioCoder.close();
-				inputAudioCoder = null;
-			}
-			if(outputVideoCoder != null) {
-				outputVideoCoder.close();
-				outputVideoCoder = null;
-			}
-			if(inputVideoCoder != null) {
-				inputVideoCoder.close();
-				inputVideoCoder = null;
-			}
-			if(outputContainer != null) {
-				outputContainer.close();
-				outputContainer = null;
-			}
+			closeOutputContainer();
+			closeInputContainer();
 		}
 		finally {
 //			notifyAll();
@@ -133,7 +123,7 @@ public class Transcoder implements Runnable {
 	/**
 	 * 読み込み用のコンテナを開く
 	 */
-	private void openContainer() {
+	private void openInputContainer() {
 		String url;
 		int retval = -1;
 		logger.info("読み込みコンテナを開きます。");
@@ -147,30 +137,12 @@ public class Transcoder implements Runnable {
 		if(retval < 0) {
 			throw new RuntimeException("入力用のURLを開くことができませんでした。" + url);
 		}
-		logger.info("書き込みコンテナを開きます。");
-		url = outputProtocol + ":" + taskName;
-		outputStreamInfo.setURL(url);
-		outputContainer = IContainer.make();
-		IContainerFormat outputFormat = IContainerFormat.make();
-		outputFormat.setOutputFormat(this.outputFormat, url, null);
-		retval = outputContainer.open(url, IContainer.Type.WRITE, outputFormat);
-		if(retval < 0) {
-			throw new RuntimeException("出力用のURLを開くことができませんでした。" + url);
-		}
-/*		logger.info("書き込みコンテナのヘッダを書き込みます。");
-		retval = outputContainer.writeHeader();
-		if(retval < 0) {
-			throw new RuntimeException("出力ヘッダの書き込みに失敗しました。");
-		}*/
 	}
 	/**
 	 * 変換を実行
 	 */
 	private void transcode() {
 		int retval = -1;
-//		synchronized (this) {
-//			notifyAll();
-//		}
 		// 動作パケットの受け皿を準備しておく。
 		IPacket packet = IPacket.make();
 		while(keepRunning) {
@@ -199,6 +171,122 @@ public class Transcoder implements Runnable {
 			}
 		}
 	}
+	private void closeInputContainer() {
+		if(inputVideoCoder != null) {
+			inputVideoCoder.close();
+			inputVideoCoder = null;
+		}
+		if(inputAudioCoder != null) {
+			inputAudioCoder.close();
+			inputAudioCoder = null;
+		}
+		if(inputContainer != null) {
+			inputContainer.close();
+		}
+	}
+	private void closeOutputContainer() {
+		if(outputContainer != null) {
+			outputContainer.writeTrailer();
+		}
+		if(outputVideoCoder != null) {
+			outputVideoCoder.close();
+			outputVideoCoder = null;
+		}
+		if(outputAudioCoder != null) {
+			outputAudioCoder.close();
+			outputAudioCoder = null;
+		}
+		if(outputContainer != null) {
+			outputContainer.close();
+			outputContainer = null;
+		}
+	}
+	/**
+	 * 出力用のコンテナを開く
+	 */
+	private void openOutputContainer() {
+		String url;
+		int retval = -1;
+		logger.info("書き込みコンテナを開きます。");
+		url = outputProtocol + ":" + taskName;
+		ISimpleMediaFile outputInfo = new SimpleMediaFile();
+		outputInfo.setURL(url);
+		outputContainer = IContainer.make();
+		IContainerFormat outputFormat = IContainerFormat.make();
+		outputFormat.setOutputFormat(this.outputFormat, url, null);
+		retval = outputContainer.open(url, IContainer.Type.WRITE, outputFormat);
+		if(retval < 0) {
+			throw new RuntimeException("出力用のURLを開くことができませんでした。" + url);
+		}
+		if(videoStreamId != -1) {
+			// videoストリームを開く
+			openOutputVideoCoder();
+		}
+		if(audioStreamId != -1) {
+			// audioストリームを開く
+			openOutputAudioCoder();
+		}
+		retval = outputContainer.writeHeader();
+		if(retval < 0) {
+			throw new RuntimeException("出力ヘッダの書き込みに失敗しました。");
+		}
+	}
+	private void openOutputVideoCoder() {
+		IStream outStream = outputContainer.addNewStream(outputContainer.getNumStreams());
+		if(outStream == null) {
+			throw new RuntimeException("video出力用のストリーム生成ができませんでした。");
+		}
+		IStreamCoder outCoder = outStream.getStreamCoder();
+		ICodec outCodec = ICodec.findEncodingCodec(outputStreamInfo.getVideoCodec());
+		if(outCodec == null) {
+			throw new RuntimeException("video出力用のエンコードコーデックを取得することができませんでした。");
+		}
+		outCoder.setCodec(outCodec);
+		outCoder.setWidth(outputStreamInfo.getVideoWidth());
+		outCoder.setHeight(outputStreamInfo.getVideoHeight());
+		outCoder.setPixelType(outputStreamInfo.getVideoPixelFormat());
+		outCoder.setGlobalQuality(outputStreamInfo.getVideoGlobalQuality());
+		outCoder.setBitRate(outputStreamInfo.getVideoBitRate());
+		outCoder.setFrameRate(outputStreamInfo.getVideoFrameRate());
+		outCoder.setNumPicturesInGroupOfPictures(outputStreamInfo.getVideoNumPicturesInGroupOfPictures());
+		// 細かいプロパティ
+		for(String key : videoProperties.keySet()) {
+			outCoder.setProperty(key, videoProperties.get(key));
+		}
+		// flags
+		for(IStreamCoder.Flags key : videoFlags.keySet()) {
+			outCoder.setFlag(key, videoFlags.get(key));
+		}
+		if(outputStreamInfo.getVideoTimeBase() != null) {
+			outCoder.setTimeBase(outputStreamInfo.getVideoTimeBase());
+		}
+		else {
+			outCoder.setTimeBase(IRational.make(1, 1000));
+		}
+		if(outCoder.open() < 0) {
+			throw new RuntimeException("出力コーダーをオープンするのに失敗しました。");
+		}
+		// 開くことに成功したので以降これを利用する。
+		outputVideoCoder = outCoder;
+	}
+	private void openOutputAudioCoder() {
+		IStream outStream = outputContainer.addNewStream(outputContainer.getNumStreams());
+		if(outStream == null) {
+			throw new RuntimeException("audio出力用のストリーム生成ができませんでした。");
+		}
+		IStreamCoder outCoder = outStream.getStreamCoder();
+		ICodec outCodec = ICodec.findEncodingCodec(outputStreamInfo.getAudioCodec());
+		if(outCodec == null) {
+			throw new RuntimeException("audio出力用のエンコーダーを取得することができませんでした。");
+		}
+		outCoder.setCodec(outCodec);
+		outCoder.setBitRate(outputStreamInfo.getAudioBitRate());
+		outCoder.setSampleRate(outputStreamInfo.getAudioSampleRate());
+		outCoder.setChannels(outputStreamInfo.getAudioChannels());
+		outCoder.open();
+		// 開くことに成功したので以降これを利用する。
+		outputAudioCoder = outCoder;
+	}
 	/**
 	 * パケット情報から、動作に必要なコーダーを開きます。
 	 * また映像or音声のあたらしいパケットを入手した場合は出力ファイルを変更する必要がでてくるので、そっちの処理も実行します。
@@ -206,7 +294,6 @@ public class Transcoder implements Runnable {
 	 * @param packet
 	 */
 	private boolean checkInputCoder(IPacket packet) {
-//		int retval = -1;
 		// どうやらContainerにaddNewStreamをしない限り、動作できるらしい。(あとから追加が可能？っぽい。)
 		IStream stream = inputContainer.getStream(packet.getStreamIndex());
 		if(stream == null) {
@@ -227,31 +314,11 @@ public class Transcoder implements Runnable {
 					// audio出力が必要ない場合は処理しない。
 					return false;
 				}
-				// TODO どうやらheaderを一度ひらいてしまったら、次のヘッダはひらけないらしい。
-				// コンテナの作り直しが必要→必要。
-//				outputContainer.close();
-				// 出力を作成する。
-				logger.info("2outputContainerの現行のストリーム数を取得:" + outputContainer.getNumStreams());
-				IStream outStream = outputContainer.addNewStream(outputContainer.getNumStreams());
-				if(outStream == null) {
-					throw new RuntimeException("audio出力用のストリーム生成ができませんでした。");
-				}
-				IStreamCoder outCoder = outStream.getStreamCoder();
-				ICodec outCodec = ICodec.findEncodingCodec(outputStreamInfo.getAudioCodec());
-				if(outCodec == null) {
-					throw new RuntimeException("audio出力用のエンコードコーデックを取得することができませんでした。");
-				}
-				outCoder.setCodec(outCodec);
-				outCoder.setBitRate(outputStreamInfo.getAudioBitRate());
-				outCoder.setSampleRate(outputStreamInfo.getAudioSampleRate());
-				outCoder.setChannels(outputStreamInfo.getAudioChannels());
-				outCoder.open();
-				// 開くことに成功したので以降これを利用する。
-				outputAudioCoder = outCoder;
-//				retval = outputContainer.writeHeader();
-//				if(retval < 0) {
-//					logger.info("出力コンテナにヘッダを書こうとしたら、失敗した。");
-//				}
+				audioStreamId = packet.getStreamIndex();
+				// 必要があるなら、出力コンテナーを閉じる
+				closeOutputContainer();
+				// 出力コンテナーを生成する。
+				openOutputContainer();
 			}
 			else if(inputAudioCoder.hashCode() == coder.hashCode()) {
 				// コーダーが一致する場合はこのままコーダーをつかって処理すればよい。
@@ -260,12 +327,12 @@ public class Transcoder implements Runnable {
 			else {
 				inputAudioCoder.close();
 				inputAudioCoder = null;
+				audioStreamId = packet.getStreamIndex();
 			}
 			// 入力Audioコーダーとリサンプラーを準備しておく。
 			if(coder.open() < 0) {
 				throw new RuntimeException("audio入力用のデコーダーを開くのに失敗しました。");
 			}
-			audioStreamId = packet.getStreamIndex();
 			isAudioResamplerChecked = false;
 			inputAudioCoder = coder;
 		}
@@ -274,48 +341,11 @@ public class Transcoder implements Runnable {
 				if(!outputStreamInfo.hasVideo()) {
 					return false;
 				}
-				// 出力を作成する。
-				logger.info("1outputContainerの現行のストリーム数を取得:" + outputContainer.getNumStreams());
-				IStream outStream = outputContainer.addNewStream(outputContainer.getNumStreams());
-				if(outStream == null) {
-					throw new RuntimeException("video出力用のストリーム生成ができませんでした。");
-				}
-				IStreamCoder outCoder = outStream.getStreamCoder();
-				ICodec outCodec = ICodec.findEncodingCodec(outputStreamInfo.getVideoCodec());
-				if(outCodec == null) {
-					throw new RuntimeException("video出力用のエンコードコーデックを取得することができませんでした。");
-				}
-				outCoder.setCodec(outCodec);
-				outCoder.setWidth(outputStreamInfo.getVideoWidth());
-				outCoder.setHeight(outputStreamInfo.getVideoHeight());
-				outCoder.setPixelType(outputStreamInfo.getVideoPixelFormat());
-				outCoder.setGlobalQuality(outputStreamInfo.getVideoGlobalQuality());
-				outCoder.setBitRate(outputStreamInfo.getVideoBitRate());
-				outCoder.setFrameRate(outputStreamInfo.getVideoFrameRate());
-				outCoder.setNumPicturesInGroupOfPictures(outputStreamInfo.getVideoNumPicturesInGroupOfPictures());
-				// 細かいプロパティ
-				for(String key : videoProperties.keySet()) {
-					outCoder.setProperty(key, videoProperties.get(key));
-				}
-				// flags
-				for(IStreamCoder.Flags key : videoFlags.keySet()) {
-					outCoder.setFlag(key, videoFlags.get(key));
-				}
-				if(outputStreamInfo.getVideoTimeBase() != null) {
-					outCoder.setTimeBase(outputStreamInfo.getVideoTimeBase());
-				}
-				else {
-					outCoder.setTimeBase(IRational.make(1, 1000));
-				}
-				if(outCoder.open() < 0) {
-					throw new RuntimeException("出力コーダーをオープンするのに失敗しました。");
-				}
-				// 開くことに成功したので以降これを利用する。
-				outputVideoCoder = outCoder;
-//				retval = outputContainer.writeHeader();
-//				if(retval < 0) {
-//					logger.info("出力コンテナにヘッダを書こうとしたら、失敗した。");
-//				}
+				videoStreamId = packet.getStreamIndex();
+				// 必要があるなら、出力コンテナーを閉じる
+				closeOutputContainer();
+				// 出力コンテナーを生成する。
+				openOutputContainer();
 			}
 			else if(inputVideoCoder.hashCode() == coder.hashCode()){
 				// コーダーが一致する場合はこのままコーダーをつかって処理をすればよい。
@@ -324,12 +354,12 @@ public class Transcoder implements Runnable {
 			else {
 				inputVideoCoder.close();
 				inputVideoCoder = null;
+				videoStreamId = packet.getStreamIndex();
 			}
 			// 入力Videoコーダーを準備しておく。
 			if(coder.open() < 0) {
 				throw new RuntimeException("video入力用のデコーダーを開くのに失敗しました。");
 			}
-			videoStreamId = packet.getStreamIndex();
 			isVideoResamplerChecked = false;
 			inputVideoCoder = coder;
 		}
@@ -450,6 +480,9 @@ public class Transcoder implements Runnable {
 				System.out.println("audioエンコードに失敗しましたが、このまま続けます。");
 				break;
 			}
+			else {
+				System.out.println("audioエンコードに成功しました。");
+			}
 			numSamplesConsumed += retval;
 			
 			if(outPacket.isComplete()) {
@@ -522,10 +555,10 @@ public class Transcoder implements Runnable {
 		if(preEncode.isComplete()) {
 			retval = outputVideoCoder.encodeVideo(outPacket, preEncode, 0);
 			if(retval <= 0) {
-				IError error = IError.make(retval);
-				System.out.println("videoのエンコードに失敗しましたが、そのまま続けます。:" + error.getDescription());
+				System.out.println("videoのエンコードに失敗しましたが、そのまま続けます。");
 			}
 			else {
+				System.out.println("videoのエンコードに成功");
 				numBytesConsumed += retval;
 			}
 			if(outPacket.isComplete()) {

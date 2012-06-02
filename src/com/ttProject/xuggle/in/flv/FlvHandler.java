@@ -71,6 +71,7 @@ public class FlvHandler implements IURLProtocolHandler {
 			ByteBuffer packet = null;
 			if(lastReadBuffer != null) {
 				packet = lastReadBuffer;
+				lastReadBuffer = null;
 			}
 			else {
 				packet = inputQueue.read();
@@ -81,21 +82,22 @@ public class FlvHandler implements IURLProtocolHandler {
 				break;
 			}
 			System.out.println("packet pos" + packet.position());
-			System.out.println("packet" + packet.limit());
-			if(readBuffer.remaining() < packet.limit()) {
-				System.out.println("たりないから、端数のみ読み込み処理する。");
-/*				byte[] readBytes = new byte[readBuffer.remaining()];
+			System.out.println("packet" + packet.remaining());
+			if(readBuffer.remaining() < packet.remaining()) {
+//				System.out.println("たりないから、端数のみ読み込み処理する。");
+				byte[] readBytes = new byte[readBuffer.remaining()];
 				packet.get(readBytes);
 				readBuffer.put(readBytes);
 				// 読み込みがあふれる場合
-				lastReadBuffer = packet;*/
 				lastReadBuffer = packet;
+//				lastReadBuffer = packet;
 				break;
 			}
 			else {
 				// まだ読み込み可能な場合
-//				System.out.println("余裕があるので、そのまま書き込む");
-				readBuffer.put(packet);
+				byte[] readBytes = new byte[packet.remaining()];
+				packet.get(readBytes);
+				readBuffer.put(readBytes);
 			}
 		}
 		readBuffer.flip();

@@ -3,26 +3,45 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import org.red5.io.utils.HexDump;
 
+@SuppressWarnings("unused")
 public class Test {
 	public static LinkedBlockingQueue<String> queue = null;
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) throws Exception {
-		ByteBuffer buffer1 = ByteBuffer.allocate(2);
-		ByteBuffer buffer2 = ByteBuffer.allocate(2);
-		ByteBuffer buffer3 = ByteBuffer.allocate(2);
-		ByteBuffer buf = ByteBuffer.allocate(10);
-		buffer1.put((byte)0x01);
-		System.out.println(buffer1.limit());
-		buffer1.flip();
-		System.out.println(buffer1.limit());
-		buffer2.put((byte)0x01);
-		buffer2.flip();
-		buffer3.put((byte)0x01);
-		buffer3.flip();
-		System.out.println(buffer1.position());
-		System.out.println(buffer1.position());
-		System.out.println(HexDump.toHexString(buf.array()));
+		ByteBuffer buf = ByteBuffer.allocate(100);
+		for(int i = 0;i < 100;i ++) {
+			buf.put((byte)i);
+		}
+		System.out.println("position:" + buf.position());
+		System.out.println("limit:" + buf.limit());
+		System.out.println("capacity:" + buf.capacity());
+		System.out.println("remaining:" + buf.remaining());
+		buf.flip();
+		System.out.println("position:" + buf.position());
+		System.out.println("limit:" + buf.limit());
+		System.out.println("capacity:" + buf.capacity());
+		System.out.println("remaining:" + buf.remaining());
+		buf.get(new byte[30]);
+		System.out.println("position:" + buf.position());
+		System.out.println("limit:" + buf.limit());
+		System.out.println("capacity:" + buf.capacity());
+		System.out.println("remaining:" + buf.remaining());
+//		System.out.println(HexDump.toHexString(buf.array()));
+		/*
+position:100
+limit:100
+capacity:100
+remaining:0
+position:0
+limit:100
+capacity:100
+remaining:100
+position:30
+limit:100
+capacity:100
+remaining:70
+		 */
 	}
 }
