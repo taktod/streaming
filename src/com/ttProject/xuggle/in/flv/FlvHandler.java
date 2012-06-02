@@ -12,6 +12,7 @@ import com.xuggle.xuggler.io.IURLProtocolHandler;
  * @author taktod
  */
 public class FlvHandler implements IURLProtocolHandler {
+	/** ロガー */
 	private final Logger logger = LoggerFactory.getLogger(FlvHandler.class);
 	/** flvDataQueue */
 	private FlvDataQueue inputQueue;
@@ -81,16 +82,14 @@ public class FlvHandler implements IURLProtocolHandler {
 				System.out.println("読み出せるパケットがなくなった。");
 				break;
 			}
-			System.out.println("packet pos" + packet.position());
-			System.out.println("packet" + packet.remaining());
+//			System.out.println("packet pos" + packet.position());
+//			System.out.println("packet" + packet.remaining());
 			if(readBuffer.remaining() < packet.remaining()) {
-//				System.out.println("たりないから、端数のみ読み込み処理する。");
 				byte[] readBytes = new byte[readBuffer.remaining()];
 				packet.get(readBytes);
 				readBuffer.put(readBytes);
 				// 読み込みがあふれる場合
 				lastReadBuffer = packet;
-//				lastReadBuffer = packet;
 				break;
 			}
 			else {
@@ -104,7 +103,6 @@ public class FlvHandler implements IURLProtocolHandler {
 		int length = readBuffer.limit();
 		logger.info("実際の読み込みデータ量:" + length);
 		readBuffer.get(buf, 0, length);
-//		System.out.println(HexDump.toHexString(buf));
 		return length;
 	}
 	/**
@@ -126,6 +124,7 @@ public class FlvHandler implements IURLProtocolHandler {
 	 */
 	@Override
 	public int write(byte[] buf, int size) {
+		// いまのところ書き込みは考慮しませんので、OutputContainerにflvHandlerFactoryのProtocolを割り当ててはいけない。
 		return 0;
 	}
 }

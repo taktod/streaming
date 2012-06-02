@@ -28,63 +28,67 @@ import com.xuggle.xuggler.SimpleMediaFile;
  * @author taktod
  */
 public class Transcoder implements Runnable {
+	/** ロガー */
 	private final Logger logger = LoggerFactory.getLogger(Transcoder.class);
-	// 外部から指定されるもの。
-	private ISimpleMediaFile outputStreamInfo;
-	private Map<String, String> videoProperties = new HashMap<String, String>();
-	private Map<IStreamCoder.Flags, Boolean> videoFlags = new HashMap<IStreamCoder.Flags, Boolean>();
-	// 外部から指定されるもの。カスタム
-	private final String inputProtocol;
-	private final String inputFormat;
-	private final String outputProtocol;
-	private final String outputFormat;
-	private final String taskName;
+	/** 外部から指定されるもの。 */
+	private ISimpleMediaFile outputStreamInfo; // 出力ファイルテンプレート
+	private Map<String, String> videoProperties = new HashMap<String, String>(); // 出力プロパティーテンプレート
+	private Map<IStreamCoder.Flags, Boolean> videoFlags = new HashMap<IStreamCoder.Flags, Boolean>(); // 出力フラグテンプレート
+	/** 外部から指定されるもの。カスタム */
+	private final String inputProtocol;  // 入力プロトコル
+	private final String inputFormat;    // 入力フォーマット
+	private final String outputProtocol; // 出力プロトコル
+	private final String outputFormat;   // 出力フォーマット
+	private final String taskName;       // このTranscoderの動作タスク名
 
-	// 内部で定義するもの。
-	// 入力データ編
-	private IContainer inputContainer = null;
-	private IStreamCoder inputAudioCoder = null;
-	private IStreamCoder inputVideoCoder = null;
-	private int audioStreamId = -1;
-	private int videoStreamId = -1;
+	/** 内部で定義するもの。 */
+	/** 入力データ編 */
+	private IContainer   inputContainer  = null; // 入力コンテナ
+	private IStreamCoder inputAudioCoder = null; // 入力audioデコード
+	private IStreamCoder inputVideoCoder = null; // 入力videoデコード
+	private int audioStreamId = -1; // 設定audioストリーム番号
+	private int videoStreamId = -1; // 設定videoストリーム番号
 
-	// 出力データ編
-	private IContainer outputContainer = null;
-	private IStreamCoder outputAudioCoder = null;
-	private IStreamCoder outputVideoCoder = null;
+	/** リサンプラー編 */
+	private boolean isVideoResamplerChecked = false; // videoリサンプラーの必要性を確認済みかどうかフラグ
+	private boolean isAudioResamplerChecked = false; // audioリサンプラーの必要性を確認済みかどうかフラグ
+	private IVideoResampler videoResampler  = null; // videoリサンプラー
+	private IAudioResampler audioResampler  = null; // audioリサンプラー
+
+	/** 出力データ編 */
+	private IContainer   outputContainer  = null; // 出力コンテナー
+	private IStreamCoder outputAudioCoder = null; // 出力audioエンコード
+	private IStreamCoder outputVideoCoder = null; // 出力videoエンコード
 	
-	// リサンプラー編
-	private boolean isVideoResamplerChecked = false;
-	private boolean isAudioResamplerChecked = false;
-	private IVideoResampler videoResampler = null;
-	private IAudioResampler audioResampler = null;
-
-	// 動作定義
-	private volatile boolean keepRunning = true;
-	
+	/** 動作定義 */
+	private volatile boolean keepRunning = true; // 動作中フラグ
+	/** 時刻操作 */
+	private long timestamp;
+	public long getTimestamp() {
+		return timestamp;
+	}
 	/**
-	 * インプット要素がなんであるか指定が必要
-	 * 本来はここに、各種コンバート(jpegmp3ストリームだけか？)の指定が必要
+	 * コンストラクタ
+	 * 入力、出力等の定義データを受け取る
 	 */
 	public Transcoder(
 			FlvInputManager inputManager,
 			MpegtsOutputManager outputManager,
 			String name) {
 		logger.info("トランスコーダーの初期化");
-		// 作成するファイルについての詳細をつくりあげる必要がある。
-		// コンバートのcodecを入手したときに、変換後のデータ用のコーデックとして必要なものを記述しておかないといけない。
-		// TODO とりあえず一回つくってみよう。
-		// 出力ファイルの設定が必要。(実際に存在するかは、あとで決める。)
 		outputStreamInfo = outputManager.getStreamInfo();
 		videoProperties.putAll(outputManager.getVideoProperty());
 		videoFlags.putAll(outputManager.getVideoFlags());
 		
-		inputProtocol = inputManager.getProtocol();
-		inputFormat = inputManager.getFormat();
+		inputProtocol  = inputManager.getProtocol();
+		inputFormat    = inputManager.getFormat();
 		outputProtocol = outputManager.getProtocol();
-		outputFormat = outputManager.getFormat();
+		outputFormat   = outputManager.getFormat();
 		taskName = name;
 	}
+	/**
+	 * threadの実行
+	 */
 	@Override
 	public void run() {
 		try {
@@ -93,12 +97,12 @@ public class Transcoder implements Runnable {
 			openInputContainer();
 			// 変換を実行
 			transcode();
-			// 終わったら変換を止める。
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally {
+			// おわったら変換をとめる。
 			closeAll();
 		}
 	}
@@ -113,8 +117,8 @@ public class Transcoder implements Runnable {
 	 */
 	private void closeAll() {
 		try {
-			closeOutputContainer();
-			closeInputContainer();
+			closeOutputContainer(); // 出力コンテナの解放
+			closeInputContainer(); // 入力コンテナの解放
 		}
 		finally {
 //			notifyAll();
@@ -149,18 +153,18 @@ public class Transcoder implements Runnable {
 			// パケットの入力を取得する。
 			retval = inputContainer.readNextPacket(packet);
 			if(retval < 0) {
-				// もしかしたら、特定のFLVではここにくることがあるかもしれない。
-				// データの受け取りに失敗したので、おわる。
+				// queueをpollにしている場合はここにくることがある。いまのところtakeにして、waitするようにしているので、ありえない。
 				keepRunning = false;
 				break;
 			}
 			IPacket decodePacket = packet;
+			timestamp = packet.getTimeStamp();
 			// 入力コーダーを開きます。
 			if(!checkInputCoder(decodePacket)) {
 				// 処理する必要のないパケットなのでスキップします。
 				continue;
 			}
-			// デコードします。
+			// 各エレメントの変換処理に移行します。
 			int index = decodePacket.getStreamIndex();
 			if(index == audioStreamId) {
 				// 音声を処理します。
@@ -171,6 +175,9 @@ public class Transcoder implements Runnable {
 			}
 		}
 	}
+	/**
+	 * 入力系のオブジェクトを閉じます。
+	 */
 	private void closeInputContainer() {
 		if(inputVideoCoder != null) {
 			inputVideoCoder.close();
@@ -182,8 +189,12 @@ public class Transcoder implements Runnable {
 		}
 		if(inputContainer != null) {
 			inputContainer.close();
+			inputContainer = null;
 		}
 	}
+	/**
+	 * 出力系のオブジェクトを閉じます。
+	 */
 	private void closeOutputContainer() {
 		if(outputContainer != null) {
 			outputContainer.writeTrailer();
@@ -231,6 +242,9 @@ public class Transcoder implements Runnable {
 			throw new RuntimeException("出力ヘッダの書き込みに失敗しました。");
 		}
 	}
+	/**
+	 * 出力videoコーダーを開きます。
+	 */
 	private void openOutputVideoCoder() {
 		IStream outStream = outputContainer.addNewStream(outputContainer.getNumStreams());
 		if(outStream == null) {
@@ -269,6 +283,9 @@ public class Transcoder implements Runnable {
 		// 開くことに成功したので以降これを利用する。
 		outputVideoCoder = outCoder;
 	}
+	/**
+	 * 出力audioコーダーを開きます。
+	 */
 	private void openOutputAudioCoder() {
 		IStream outStream = outputContainer.addNewStream(outputContainer.getNumStreams());
 		if(outStream == null) {
@@ -487,7 +504,7 @@ public class Transcoder implements Runnable {
 			
 			if(outPacket.isComplete()) {
 				// ここで出力ファイルができあがる。
-//				outputContainer.writePacket(outPacket);
+				outputContainer.writePacket(outPacket);
 			}
 		}
 	}
@@ -562,7 +579,7 @@ public class Transcoder implements Runnable {
 				numBytesConsumed += retval;
 			}
 			if(outPacket.isComplete()) {
-//				outputContainer.writePacket(outPacket);
+				outputContainer.writePacket(outPacket);
 			}
 		}
 	}

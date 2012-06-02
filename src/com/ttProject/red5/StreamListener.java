@@ -37,13 +37,10 @@ public class StreamListener implements IStreamListener {
 	/** xuggle用のデータqueue */
 	private FlvDataQueue flvDataQueue;
 	/** httpTakStreaming用のfileCreator */
-	private TakSegmentCreator takSegmentCreator; // tag segmenterに渡すデータは生データにしたいので、このクラスで生データを扱うようにしたいところ。
+	private TakSegmentCreator takSegmentCreator;
 	/** 動作ストリームを保持します。 */
 	IBroadcastStream stream;
-	/** Transcoderを保持します。 */
-//	private Transcoder transcoder;
 
-	// このストリームとひもづいているRed5DataQueueとFlvByteCreatorを保持しておく必要がある。
 	private ITag audioFirstTag = null; // それぞれの初期タグを保持しておく
 	private ITag videoFirstTag = null; // それぞれの初期タグを保持しておく
 	/**
@@ -92,7 +89,7 @@ public class StreamListener implements IStreamListener {
 	private ByteBuffer makeHeaderByteBuffer() {
 		// flvHeaderを生成します。
 		FLVHeader flvHeader = new FLVHeader();
-		// TODO transcoderの方で、audioパケットがながれてきたら、audioがあるものとして動作するようにしますが、入力データは一定のままとして扱いたい。
+		// transcoderの方で、audioパケットがながれてきたら、audioがあるものとして動作するようにしますが、入力データは一定のままとして扱いたい。
 		// なので、ここでのFlvHeaderとしては、少々不正になる可能性がありますが、audioもvideoも存在するものとして動作させます。
 		flvHeader.setFlagAudio(true);
 		flvHeader.setFlagVideo(true);
@@ -159,6 +156,7 @@ public class StreamListener implements IStreamListener {
 			// sizeが取得できないので、スキップする。
 			return;
 		}
+		// tagに変換
 		ITag tag = new Tag();
 		tag.setDataType(rtmpEvent.getDataType());
 		tag.setTimestamp(rtmpEvent.getTimestamp());
@@ -167,7 +165,7 @@ public class StreamListener implements IStreamListener {
 		tag.setBody(data);
 		byte dataType = tag.getDataType();
 		if(audioFirstTag == null && dataType != ITag.TYPE_AUDIO) {
-			// TODO ここの部分は、コーデック情報等がいれかわったときにも変更する必要があるかもしれない。
+			// TODO ここの部分は、コーデック情報等がいれかわったときにも変更する必要があるかもしれない。(未検証)
 			// 新規にタグを発見したので、updateが必要
 			audioFirstTag = tag;
 			if(takSegmentCreator != null) {
@@ -175,7 +173,7 @@ public class StreamListener implements IStreamListener {
 			}
 		}
 		if(videoFirstTag == null && dataType != ITag.TYPE_VIDEO) {
-			// TODO ここの部分は、コーデック情報等がいれかわったときにも変更する必要があるかもしれない。
+			// TODO ここの部分は、コーデック情報等がいれかわったときにも変更する必要があるかもしれない。(未検証)
 			// 新規にタグを発見したので、updateが必要
 			videoFirstTag = tag;
 			if(takSegmentCreator != null) {
@@ -192,7 +190,7 @@ public class StreamListener implements IStreamListener {
 			if(rtmpEvent instanceof VideoData) {
 				VideoData dataPacket = (VideoData)rtmpEvent;
 				if(dataPacket.getFrameType() == FrameType.DISPOSABLE_INTERFRAME) {
-					// disposable interframeの場合はxuggleに渡さない
+					// disposable interframeの場合はxuggleに渡さない→xuggleのffmpeg動作がバグって映像パケットエラーになるため。
 					return;
 				}
 			}

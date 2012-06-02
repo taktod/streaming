@@ -3,9 +3,6 @@ package com.ttProject.xuggle.in.flv;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.xuggle.xuggler.io.IURLProtocolHandler;
 import com.xuggle.xuggler.io.IURLProtocolHandlerFactory;
 import com.xuggle.xuggler.io.URLProtocolManager;
@@ -16,12 +13,11 @@ import com.xuggle.xuggler.io.URLProtocolManager;
  * @author taktod
  */
 public class FlvHandlerFactory implements IURLProtocolHandlerFactory{
-	private static final Logger logger = LoggerFactory.getLogger(FlvHandlerFactory.class);
 	/** シングルトンインスタンス */
 	private static FlvHandlerFactory instance = new FlvHandlerFactory();
 	/** このFactoryが扱うプロトコル名 */
 	public static final String DEFAULT_PROTOCOL = "flvStreamInput";
-	/** 内部で処理しているFlvDataInputManagerの保持 */
+	/** 内部で処理しているFlvHandlerの保持 */
 	private final Map<String, FlvHandler> handlers = new ConcurrentHashMap<String, FlvHandler>();
 	/**
 	 * ffmpegからurlが合致する場合にhandlerを求められます。
@@ -29,14 +25,7 @@ public class FlvHandlerFactory implements IURLProtocolHandlerFactory{
 	@Override
 	public IURLProtocolHandler getHandler(String protocol, String url, int flags) {
 		String streamName = URLProtocolManager.getResourceFromURL(url);
-		logger.info(streamName);
-		FlvHandler handler = handlers.get(streamName);
-		if(handler != null) {
-			logger.info("handlerがみつかりました。");
-			return handler;
-		}
-		logger.info("handlerが見つかりませんでした。");
-		return null;
+		return handlers.get(streamName);
 	}
 	/**
 	 * コンストラクタ
@@ -57,7 +46,7 @@ public class FlvHandlerFactory implements IURLProtocolHandlerFactory{
 		return instance;
 	}
 	/**
-	 * マネージャーを登録する。
+	 * 処理Handlerを登録する。
 	 * @param manager
 	 */
 	public void registerHandler(String name, FlvHandler handler) {
