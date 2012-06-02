@@ -151,12 +151,21 @@ public class StreamListener implements IStreamListener {
 		}
 	}
 	/**
-	 * tagデータを確認します。
-	 * @param tag
+	 * rtmpEventを確認します。
+	 * @param rtmpEvent
 	 */
-	private void checkTag(ITag tag) {
+	private void checkRtmpEvent(IRTMPEvent rtmpEvent) {
+		if(rtmpEvent.getHeader().getSize() == 0) {
+			// sizeが取得できないので、スキップする。
+			return;
+		}
+		ITag tag = new Tag();
+		tag.setDataType(rtmpEvent.getDataType());
+		tag.setTimestamp(rtmpEvent.getTimestamp());
+		IoBuffer data = ((IStreamData<?>) rtmpEvent).getData().asReadOnlyBuffer();
+		tag.setBodySize(data.limit());
+		tag.setBody(data);
 		byte dataType = tag.getDataType();
-		// httpTakStreamingはそのまま動作してOKなので(あとでメタデータやheaderデータがきても問題ない。)
 		if(audioFirstTag == null && dataType != ITag.TYPE_AUDIO) {
 			// TODO ここの部分は、コーデック情報等がいれかわったときにも変更する必要があるかもしれない。
 			// 新規にタグを発見したので、updateが必要
@@ -180,6 +189,13 @@ public class StreamListener implements IStreamListener {
 			takSegmentCreator.writeTagData(tagBuffer);
 		}
 		if(flvDataQueue != null) {
+			if(rtmpEvent instanceof VideoData) {
+				VideoData dataPacket = (VideoData)rtmpEvent;
+				if(dataPacket.getFrameType() == FrameType.DISPOSABLE_INTERFRAME) {
+					// disposable interframeの場合はxuggleに渡さない
+					return;
+				}
+			}
 			// ここでビデオタグの場合のデータについて調査しなければいけない。
 			flvDataQueue.putTagData(tagBuffer);
 		}
@@ -195,29 +211,7 @@ public class StreamListener implements IStreamListener {
 				return;
 			}
 			IRTMPEvent rtmpEvent = (IRTMPEvent) packet;
-			if(rtmpEvent.getHeader().getSize() == 0) {
-				// sizeが取得できないので、スキップする。
-				return;
-			}
-			if(rtmpEvent instanceof VideoData) {
-				VideoData dataPacket = (VideoData)rtmpEvent;
-				if(dataPacket.getFrameType() == FrameType.DISPOSABLE_INTERFRAME) {
-					System.out.println("disposable interframeをみつけました。");
-					// とりあえずスキップしてみる。
-					return;
-				}
-				else {
-					System.out.println("通常のフレームを見つけました。");
-				}
-			}
-			// tagを作成しておく。
-			ITag tag = new Tag();
-			tag.setDataType(rtmpEvent.getDataType());
-			tag.setTimestamp(rtmpEvent.getTimestamp());
-			IoBuffer data = ((IStreamData<?>) rtmpEvent).getData().asReadOnlyBuffer();
-			tag.setBodySize(data.limit());
-			tag.setBody(data);
-			checkTag(tag);
+			checkRtmpEvent(rtmpEvent);
 		}
 		catch (Exception e) {
 			e.printStackTrace();

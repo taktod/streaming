@@ -206,7 +206,7 @@ public class Transcoder implements Runnable {
 	 * @param packet
 	 */
 	private boolean checkInputCoder(IPacket packet) {
-		int retval = -1;
+//		int retval = -1;
 		// どうやらContainerにaddNewStreamをしない限り、動作できるらしい。(あとから追加が可能？っぽい。)
 		IStream stream = inputContainer.getStream(packet.getStreamIndex());
 		if(stream == null) {
@@ -228,7 +228,7 @@ public class Transcoder implements Runnable {
 					return false;
 				}
 				// TODO どうやらheaderを一度ひらいてしまったら、次のヘッダはひらけないらしい。
-				// コンテナの作り直しが必要？
+				// コンテナの作り直しが必要→必要。
 //				outputContainer.close();
 				// 出力を作成する。
 				logger.info("2outputContainerの現行のストリーム数を取得:" + outputContainer.getNumStreams());
