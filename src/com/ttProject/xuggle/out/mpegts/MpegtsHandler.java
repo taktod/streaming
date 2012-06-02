@@ -19,7 +19,7 @@ public class MpegtsHandler implements IURLProtocolHandler {
 	 */
 	@Override
 	public boolean isStreamed(String url, int flags) {
-		return false;
+		return true;
 	}
 	/**
 	 * ファイルオープン処理(ffmpegから呼び出されます。)
@@ -61,6 +61,7 @@ public class MpegtsHandler implements IURLProtocolHandler {
 	 */
 	@Override
 	public int write(byte[] buf, int size) {
-		return 0;
+		// 強制的に入力されたデータが書き込みできたことにします。
+		return size;
 	}
 }

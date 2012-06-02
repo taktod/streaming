@@ -11,10 +11,12 @@ import org.red5.server.api.stream.IBroadcastStream;
 import org.red5.server.api.stream.IStreamListener;
 import org.red5.server.api.stream.IStreamPacket;
 import org.red5.server.net.rtmp.event.IRTMPEvent;
+import org.red5.server.net.rtmp.event.VideoData;
+import org.red5.server.net.rtmp.event.VideoData.FrameType;
 import org.red5.server.stream.IStreamData;
 
 import com.ttProject.streaming.httptakstreaming.TakSegmentCreator;
-import com.ttProject.xuggle.Transcoder;
+//import com.ttProject.xuggle.Transcoder;
 import com.ttProject.xuggle.in.flv.FlvDataQueue;
 
 /**
@@ -39,7 +41,7 @@ public class StreamListener implements IStreamListener {
 	/** 動作ストリームを保持します。 */
 	IBroadcastStream stream;
 	/** Transcoderを保持します。 */
-	private Transcoder transcoder;
+//	private Transcoder transcoder;
 
 	// このストリームとひもづいているRed5DataQueueとFlvByteCreatorを保持しておく必要がある。
 	private ITag audioFirstTag = null; // それぞれの初期タグを保持しておく
@@ -59,6 +61,8 @@ public class StreamListener implements IStreamListener {
 		// 初期時に利用するモジュールを設定してもらう。必要なければNULLをいれる。
 		this.flvDataQueue = flvDataQueue;
 		this.takSegmentCreator = takSegmentCreator;
+	}
+	public void open() {
 		// headerを構築しておきます。
 		ByteBuffer header = makeHeaderByteBuffer();
 		if(flvDataQueue != null) {
@@ -69,21 +73,11 @@ public class StreamListener implements IStreamListener {
 		}
 		// streamの監視を開始します。
 		stream.addStreamListener(this);
-		
-		// transcodeを実行する。
-		transcoder = new Transcoder();
-		Thread transcodeThread = new Thread(transcoder);
-		transcodeThread.setDaemon(true);
-		transcodeThread.start();
 	}
 	/**
 	 * 必要なくなったらcloseします。
 	 */
 	public void close() {
-		if(transcoder != null) {
-			transcoder.close();
-			transcoder = null;
-		}
 		stream.removeStreamListener(this);
 		if(flvDataQueue != null) {
 			flvDataQueue.close();
@@ -186,6 +180,7 @@ public class StreamListener implements IStreamListener {
 			takSegmentCreator.writeTagData(tagBuffer);
 		}
 		if(flvDataQueue != null) {
+			// ここでビデオタグの場合のデータについて調査しなければいけない。
 			flvDataQueue.putTagData(tagBuffer);
 		}
 	}
@@ -203,6 +198,17 @@ public class StreamListener implements IStreamListener {
 			if(rtmpEvent.getHeader().getSize() == 0) {
 				// sizeが取得できないので、スキップする。
 				return;
+			}
+			if(rtmpEvent instanceof VideoData) {
+				VideoData dataPacket = (VideoData)rtmpEvent;
+				if(dataPacket.getFrameType() == FrameType.DISPOSABLE_INTERFRAME) {
+					System.out.println("disposable interframeをみつけました。");
+					// とりあえずスキップしてみる。
+					return;
+				}
+				else {
+					System.out.println("通常のフレームを見つけました。");
+				}
 			}
 			// tagを作成しておく。
 			ITag tag = new Tag();

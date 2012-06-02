@@ -52,7 +52,7 @@ public class FlvDataQueue {
 		ByteBuffer result = null;
 		// 待たずに応答を返すようにしたいと思います。データがなければNullが応答されます。
 		try {
-			result = dataQueue.poll();
+			result = dataQueue.take();
 			return result;
 		}
 		catch (Exception e) {

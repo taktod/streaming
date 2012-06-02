@@ -19,17 +19,6 @@ public class FlvInputManager extends InputManager {
 	 */
 	public FlvInputManager() {
 	}
-	private FlvInputManager(String name) {
-		flvDataQueue = new FlvDataQueue();
-		flvHandler = new FlvHandler(this);
-	}
-	/**
-	 * 新たなマネージャーを作成する。
-	 * @param name
-	 */
-	public FlvInputManager makeManager(String name) {
-		return new FlvInputManager(name);
-	}
 	/**
 	 * queue用オブジェクトを応答する。
 	 */
@@ -41,5 +30,11 @@ public class FlvInputManager extends InputManager {
 	 */
 	public FlvHandler getHandler() {
 		return flvHandler;
+	}
+	public String getProtocol() {
+		return FlvHandlerFactory.DEFAULT_PROTOCOL;
+	}
+	public String getFormat() {
+		return "flv";
 	}
 }

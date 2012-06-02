@@ -3,13 +3,17 @@ package com.ttProject.xuggle;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.ttProject.xuggle.in.flv.FlvHandlerFactory;
-import com.ttProject.xuggle.out.mpegts.MpegtsHandlerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.ttProject.xuggle.in.flv.FlvInputManager;
+import com.ttProject.xuggle.out.mpegts.MpegtsOutputManager;
 import com.xuggle.xuggler.IAudioResampler;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IContainerFormat;
+import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.IPacket;
 import com.xuggle.xuggler.IRational;
 import com.xuggle.xuggler.ISimpleMediaFile;
@@ -22,9 +26,9 @@ import com.xuggle.xuggler.SimpleMediaFile;
 /**
  * Xuggleでメディアデータのコンバートを実行します。
  * @author taktod
- *
  */
 public class Transcoder implements Runnable {
+	private final Logger logger = LoggerFactory.getLogger(Transcoder.class);
 	private IContainer inputContainer = null;
 	private IContainer outputContainer = null;
 	private ISimpleMediaFile outputStreamInfo;
@@ -42,50 +46,40 @@ public class Transcoder implements Runnable {
 	private int videoStreamId = -1;
 	
 	private volatile boolean keepRunning = true;
+	
+	private final String inputProtocol;
+	private final String inputFormat;
+	private final String outputProtocol;
+	private final String outputFormat;
+	private final String taskName;
 	/**
 	 * インプット要素がなんであるか指定が必要
 	 */
-	public Transcoder() {
+	public Transcoder(
+			FlvInputManager inputManager,
+			MpegtsOutputManager outputManager,
+			String name) {
+		logger.info("トランスコーダーの初期化");
 		// 作成するファイルについての詳細をつくりあげる必要がある。
 		// コンバートのcodecを入手したときに、変換後のデータ用のコーデックとして必要なものを記述しておかないといけない。
 		// TODO とりあえず一回つくってみよう。
 		// 出力ファイルの設定が必要。(実際に存在するかは、あとで決める。)
-		outputStreamInfo = new SimpleMediaFile();
-		outputStreamInfo.setHasAudio(true);
-		outputStreamInfo.setAudioBitRate(64000);
-		outputStreamInfo.setAudioChannels(2);
-		outputStreamInfo.setAudioSampleRate(44100);
-		outputStreamInfo.setAudioCodec(ICodec.ID.CODEC_ID_MP3);
-
-		outputStreamInfo.setHasVideo(true);
-		outputStreamInfo.setVideoWidth(320);
-		outputStreamInfo.setVideoHeight(240);
-		outputStreamInfo.setVideoBitRate(500000);
-		outputStreamInfo.setVideoFrameRate(IRational.make(1, 15));
-		outputStreamInfo.setVideoCodec(ICodec.ID.CODEC_ID_H264);
-		outputStreamInfo.setVideoGlobalQuality(0);
-
-		videoProperties.put("coder", "0");
-		videoProperties.put("me_method", "hex");
-		videoProperties.put("subq", "7");
-		videoProperties.put("bf", "0");
-		videoProperties.put("level", "13");
-		videoProperties.put("me_range", "16");
-		videoProperties.put("qdiff", "3");
-		videoProperties.put("g", "150");
-		videoProperties.put("qmin", "12");
-		videoProperties.put("qmax", "30");
-		videoProperties.put("refs", "3");
-		videoProperties.put("qcomp", "0");
-		videoProperties.put("maxrate", "600k");
-		videoProperties.put("bufsize", "2000k");
-		videoFlags.put(IStreamCoder.Flags.FLAG_LOOP_FILTER, true);
+		outputStreamInfo = outputManager.getStreamInfo();
+		videoProperties.putAll(outputManager.getVideoProperty());
+		videoFlags.putAll(outputManager.getVideoFlags());
+		
+		inputProtocol = inputManager.getProtocol();
+		inputFormat = inputManager.getFormat();
+		outputProtocol = outputManager.getProtocol();
+		outputFormat = outputManager.getFormat();
+		taskName = name;
 	}
 	@Override
 	public void run() {
 		try {
+			logger.info("transcoderを起動しました。");
 			// 読み込み用のコンテナをオープン
-			openReadContainer();
+			openContainer();
 			// 変換を実行
 			transcode();
 			// 終わったら変換を止める。
@@ -108,9 +102,9 @@ public class Transcoder implements Runnable {
 	 */
 	private void closeAll() {
 		try {
-//			if(outputContainer != null) {
-//				outputContainer.writeTrailer();
-//			}
+			if(outputContainer != null) {
+				outputContainer.writeTrailer();
+			}
 			if(outputAudioCoder != null) {
 				outputAudioCoder.close();
 				outputAudioCoder = null;
@@ -133,43 +127,50 @@ public class Transcoder implements Runnable {
 			}
 		}
 		finally {
-			notifyAll();
+//			notifyAll();
 		}
 	}
 	/**
 	 * 読み込み用のコンテナを開く
 	 */
-	private void openReadContainer() {
+	private void openContainer() {
 		String url;
 		int retval = -1;
-		url = FlvHandlerFactory.DEFAULT_PROTOCOL + ":test";
+		logger.info("読み込みコンテナを開きます。");
+		url = inputProtocol + ":" + taskName;
 		ISimpleMediaFile inputInfo = new SimpleMediaFile();
 		inputInfo.setURL(url);
 		inputContainer = IContainer.make();
 		IContainerFormat inputFormat = IContainerFormat.make();
-		inputFormat.setInputFormat("flv"); // 形式をflvにしておく。
+		inputFormat.setInputFormat(this.inputFormat); // 形式をflvにしておく。
 		retval = inputContainer.open(url, IContainer.Type.READ, inputFormat, true, false);
 		if(retval < 0) {
 			throw new RuntimeException("入力用のURLを開くことができませんでした。" + url);
 		}
-		url = MpegtsHandlerFactory.DEFAULT_PROTOCOL + ":test";
+		logger.info("書き込みコンテナを開きます。");
+		url = outputProtocol + ":" + taskName;
 		outputStreamInfo.setURL(url);
 		outputContainer = IContainer.make();
 		IContainerFormat outputFormat = IContainerFormat.make();
-		outputFormat.setOutputFormat("mpegts", url, null);
+		outputFormat.setOutputFormat(this.outputFormat, url, null);
 		retval = outputContainer.open(url, IContainer.Type.WRITE, outputFormat);
 		if(retval < 0) {
 			throw new RuntimeException("出力用のURLを開くことができませんでした。" + url);
 		}
+/*		logger.info("書き込みコンテナのヘッダを書き込みます。");
+		retval = outputContainer.writeHeader();
+		if(retval < 0) {
+			throw new RuntimeException("出力ヘッダの書き込みに失敗しました。");
+		}*/
 	}
 	/**
 	 * 変換を実行
 	 */
 	private void transcode() {
 		int retval = -1;
-		synchronized (this) {
-			notifyAll();
-		}
+//		synchronized (this) {
+//			notifyAll();
+//		}
 		// 動作パケットの受け皿を準備しておく。
 		IPacket packet = IPacket.make();
 		while(keepRunning) {
@@ -205,6 +206,7 @@ public class Transcoder implements Runnable {
 	 * @param packet
 	 */
 	private boolean checkInputCoder(IPacket packet) {
+		int retval = -1;
 		// どうやらContainerにaddNewStreamをしない限り、動作できるらしい。(あとから追加が可能？っぽい。)
 		IStream stream = inputContainer.getStream(packet.getStreamIndex());
 		if(stream == null) {
@@ -225,7 +227,11 @@ public class Transcoder implements Runnable {
 					// audio出力が必要ない場合は処理しない。
 					return false;
 				}
+				// TODO どうやらheaderを一度ひらいてしまったら、次のヘッダはひらけないらしい。
+				// コンテナの作り直しが必要？
+//				outputContainer.close();
 				// 出力を作成する。
+				logger.info("2outputContainerの現行のストリーム数を取得:" + outputContainer.getNumStreams());
 				IStream outStream = outputContainer.addNewStream(outputContainer.getNumStreams());
 				if(outStream == null) {
 					throw new RuntimeException("audio出力用のストリーム生成ができませんでした。");
@@ -242,6 +248,10 @@ public class Transcoder implements Runnable {
 				outCoder.open();
 				// 開くことに成功したので以降これを利用する。
 				outputAudioCoder = outCoder;
+//				retval = outputContainer.writeHeader();
+//				if(retval < 0) {
+//					logger.info("出力コンテナにヘッダを書こうとしたら、失敗した。");
+//				}
 			}
 			else if(inputAudioCoder.hashCode() == coder.hashCode()) {
 				// コーダーが一致する場合はこのままコーダーをつかって処理すればよい。
@@ -265,6 +275,7 @@ public class Transcoder implements Runnable {
 					return false;
 				}
 				// 出力を作成する。
+				logger.info("1outputContainerの現行のストリーム数を取得:" + outputContainer.getNumStreams());
 				IStream outStream = outputContainer.addNewStream(outputContainer.getNumStreams());
 				if(outStream == null) {
 					throw new RuntimeException("video出力用のストリーム生成ができませんでした。");
@@ -301,6 +312,10 @@ public class Transcoder implements Runnable {
 				}
 				// 開くことに成功したので以降これを利用する。
 				outputVideoCoder = outCoder;
+//				retval = outputContainer.writeHeader();
+//				if(retval < 0) {
+//					logger.info("出力コンテナにヘッダを書こうとしたら、失敗した。");
+//				}
 			}
 			else if(inputVideoCoder.hashCode() == coder.hashCode()){
 				// コーダーが一致する場合はこのままコーダーをつかって処理をすればよい。
@@ -456,6 +471,7 @@ public class Transcoder implements Runnable {
 		while(offset < targetPacket.getSize()) {
 			retval = inputVideoCoder.decodeVideo(inPicture, targetPacket, offset);
 			if(retval <= 0) {
+				logger.error(IError.make(retval).getDescription());
 				throw new RuntimeException("Videoパケットをデコードすることができませんでした。");
 			}
 			offset += retval;
@@ -506,7 +522,8 @@ public class Transcoder implements Runnable {
 		if(preEncode.isComplete()) {
 			retval = outputVideoCoder.encodeVideo(outPacket, preEncode, 0);
 			if(retval <= 0) {
-				System.out.println("videoのエンコードに失敗しましたが、そのまま続けます。");
+				IError error = IError.make(retval);
+				System.out.println("videoのエンコードに失敗しましたが、そのまま続けます。:" + error.getDescription());
 			}
 			else {
 				numBytesConsumed += retval;

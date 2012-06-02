@@ -17,18 +17,27 @@ public class MpegtsOutputManager extends OutputManager {
 	// 出力側はいろんなパラメーターを受け取る必要があり、これをトランスコーダーで利用する。
 	public MpegtsOutputManager(){
 	}
-	public MpegtsOutputManager(String name) {
-		mpegtsHandler = new MpegtsHandler();
-	}
 	public MpegtsHandler getHandler() {
 		return mpegtsHandler;
 	}
 	public void setVideoProperty(Map<String, String> properties) {
 		videoProperties.putAll(properties);
 	}
+	public Map<String, String> getVideoProperty() {
+		return videoProperties;
+	}
 	public void setVideoFlags(Map<String, Boolean> flags) {
 		for(String key : flags.keySet()) {
 			videoFlags.put(IStreamCoder.Flags.valueOf(key), flags.get(key));
 		}
+	}
+	public Map<IStreamCoder.Flags, Boolean> getVideoFlags() {
+		return videoFlags;
+	}
+	public String getProtocol() {
+		return MpegtsHandlerFactory.DEFAULT_PROTOCOL;
+	}
+	public String getFormat() {
+		return "mpegts";
 	}
 }

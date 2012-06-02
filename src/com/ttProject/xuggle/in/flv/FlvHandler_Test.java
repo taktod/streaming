@@ -1,5 +1,6 @@
 package com.ttProject.xuggle.in.flv;
 
+import java.io.FileInputStream;
 import java.nio.ByteBuffer;
 
 import org.red5.io.utils.HexDump;
@@ -12,18 +13,25 @@ import com.xuggle.xuggler.io.IURLProtocolHandler;
  * 実際にffmpegからデータの要求等を実行されるクラス
  * @author taktod
  */
-public class FlvHandler implements IURLProtocolHandler {
-	private final Logger logger = LoggerFactory.getLogger(FlvHandler.class);
+public class FlvHandler_Test extends FlvHandler{
+	private final Logger logger = LoggerFactory.getLogger(FlvHandler_Test.class);
 	/** flvDataQueue */
 	private FlvDataQueue inputQueue;
 	/** 最終読み込みバッファの残り */
 	private ByteBuffer lastReadBuffer = null;
+	private FileInputStream fis = null;
 	/**
 	 * コンストラクタ
 	 * @param manager
 	 */
-	public FlvHandler(FlvDataQueue queue) {
+	public FlvHandler_Test(FlvDataQueue queue) {
+		super(queue);
 		inputQueue = queue;
+		try {
+			fis = new FileInputStream("/Users/taktod/Documents/red5/dist/webapps/vod/streams/mario.flv");
+		} catch (Exception e) {
+			throw new RuntimeException("output_row.flvを開くのに失敗しました。");
+		}
 	}
 	/**
 	 * 閉じる要求がきたときの処理
@@ -31,6 +39,14 @@ public class FlvHandler implements IURLProtocolHandler {
 	 */
 	@Override
 	public int close() {
+		if(fis != null) {
+			try {
+				fis.close();
+			}
+			catch (Exception e) {
+				
+			}
+		}
 		return 0;
 	}
 	/**
@@ -63,7 +79,25 @@ public class FlvHandler implements IURLProtocolHandler {
 	 */
 	@Override
 	public int read(byte[] buf, int size) {
-		logger.info("読み込みのトライ:" + size);
+		logger.info("読み込みトライfromFis:" + size);
+		int readByte = -1;
+		int readed = 0;
+		try {
+			while((readByte = fis.read()) != -1) {
+				buf[readed] = (byte)readByte;
+				readed ++;
+				if(readed == size) {
+					break;
+				}
+			}
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException("fis読み込みに失敗");
+		}
+		System.out.println("読み込めたデータ量:" + readed);
+		return readed;
+/*		logger.info("読み込みのトライ:" + size);
 		// size分までしか読み込みする必要がないので、byteBufferとして、size分メモリーを準備しておく。
 		ByteBuffer readBuffer = ByteBuffer.allocate(size);
 		while(readBuffer.hasRemaining()) {
@@ -89,13 +123,13 @@ public class FlvHandler implements IURLProtocolHandler {
 				packet.get(readBytes);
 				readBuffer.put(readBytes);
 				// 読み込みがあふれる場合
-				lastReadBuffer = packet;*/
+				lastReadBuffer = packet;* /
 				lastReadBuffer = packet;
 				break;
 			}
 			else {
 				// まだ読み込み可能な場合
-//				System.out.println("余裕があるので、そのまま書き込む");
+				System.out.println("余裕があるので、そのまま書き込む");
 				readBuffer.put(packet);
 			}
 		}
@@ -103,8 +137,8 @@ public class FlvHandler implements IURLProtocolHandler {
 		int length = readBuffer.limit();
 		logger.info("実際の読み込みデータ量:" + length);
 		readBuffer.get(buf, 0, length);
-//		System.out.println(HexDump.toHexString(buf));
-		return length;
+		System.out.println(HexDump.toHexString(buf));
+		return length;*/
 	}
 	/**
 	 * ffmpegからシークの要求があった場合の処理

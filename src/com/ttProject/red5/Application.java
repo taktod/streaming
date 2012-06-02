@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * 基本となるApplicationAdapter
- * @author todatakahiko
+ * @author taktod
  */
 public class Application extends ApplicationAdapter {
 	private final Logger logger = LoggerFactory.getLogger(Application.class);
@@ -61,6 +61,7 @@ public class Application extends ApplicationAdapter {
 		String fullName = stream.getScope().getPath() + "/" + stream.getPublishedName();
 		if(allowedStreamName.contains(fullName)) {
 			logger.info("ストリームが停止するので、変換処理を止めます。");
+			manager.unregisterTranscoder(stream);
 		}
 	}
 }

@@ -3,6 +3,9 @@ package com.ttProject.xuggle.in.flv;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.xuggle.xuggler.io.IURLProtocolHandler;
 import com.xuggle.xuggler.io.IURLProtocolHandlerFactory;
 import com.xuggle.xuggler.io.URLProtocolManager;
@@ -13,32 +16,32 @@ import com.xuggle.xuggler.io.URLProtocolManager;
  * @author taktod
  */
 public class FlvHandlerFactory implements IURLProtocolHandlerFactory{
+	private static final Logger logger = LoggerFactory.getLogger(FlvHandlerFactory.class);
 	/** シングルトンインスタンス */
 	private static FlvHandlerFactory instance = new FlvHandlerFactory();
 	/** このFactoryが扱うプロトコル名 */
 	public static final String DEFAULT_PROTOCOL = "flvStreamInput";
 	/** 内部で処理しているFlvDataInputManagerの保持 */
-	private final Map<String, FlvInputManager> managers = new ConcurrentHashMap<String, FlvInputManager>();
+	private final Map<String, FlvHandler> handlers = new ConcurrentHashMap<String, FlvHandler>();
 	/**
 	 * ffmpegからurlが合致する場合にhandlerを求められます。
 	 */
 	@Override
 	public IURLProtocolHandler getHandler(String protocol, String url, int flags) {
 		String streamName = URLProtocolManager.getResourceFromURL(url);
-		System.out.println(streamName);
-		FlvInputManager manager = managers.get(streamName);
-		if(manager != null) {
-			System.out.println("managerあるよ");
-			return manager.getHandler();
+		logger.info(streamName);
+		FlvHandler handler = handlers.get(streamName);
+		if(handler != null) {
+			logger.info("handlerがみつかりました。");
+			return handler;
 		}
-		System.out.println("managerないよ");
+		logger.info("handlerが見つかりませんでした。");
 		return null;
 	}
 	/**
 	 * コンストラクタ
 	 */
 	private FlvHandlerFactory() {
-		System.out.println("flvHandlerFactoryを登録しておきます。");
 		// URLProtocolManagerに登録することで、今後(redfile:xxxx)のURL向けの処理はこのfactoryが返すHandlerを利用して動作するようになります。
 		URLProtocolManager manager = URLProtocolManager.getManager();
 		manager.registerFactory(DEFAULT_PROTOCOL, this);
@@ -57,7 +60,7 @@ public class FlvHandlerFactory implements IURLProtocolHandlerFactory{
 	 * マネージャーを登録する。
 	 * @param manager
 	 */
-	public void registerManager(String name, FlvInputManager manager) {
-		managers.put(name, manager);
+	public void registerHandler(String name, FlvHandler handler) {
+		handlers.put(name, handler);
 	}
 }

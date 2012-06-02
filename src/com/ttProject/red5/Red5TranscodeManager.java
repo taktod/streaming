@@ -4,9 +4,17 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.red5.server.api.stream.IBroadcastStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.ttProject.xuggle.TranscodeManager;
+import com.ttProject.xuggle.Transcoder;
+import com.ttProject.xuggle.in.flv.FlvDataQueue;
+import com.ttProject.xuggle.in.flv.FlvDataQueue_Test;
+import com.ttProject.xuggle.in.flv.FlvHandler;
+import com.ttProject.xuggle.in.flv.FlvHandlerFactory;
+import com.ttProject.xuggle.in.flv.FlvHandler_Test;
 import com.ttProject.xuggle.in.flv.FlvInputManager;
+import com.ttProject.xuggle.out.mpegts.MpegtsHandlerFactory;
 import com.ttProject.xuggle.out.mpegts.MpegtsOutputManager;
 
 /**
@@ -14,19 +22,18 @@ import com.ttProject.xuggle.out.mpegts.MpegtsOutputManager;
  * 今回はここで、すべての出力を定義します。
  * @author taktod
  */
-public class Red5TranscodeManager extends TranscodeManager {
+public class Red5TranscodeManager {
+	private final Logger logger = LoggerFactory.getLogger(Red5TranscodeManager.class);
 	/** httpTakStreamingを生成するかどうか */
 	private boolean httpTak = false;
 	/** httpLiveStreamingを生成するかどうか */
 	private boolean httpLive = false;
 	/** jpegMp3Streamingを生成するかどうか */
 	private boolean jpegMp3 = false;
-	/**
-	 * コンストラクタ
-	 */
-	public Red5TranscodeManager() {
-		// 入力はflv一択なので、そうしておく。
-		setInputManager(new FlvInputManager());
+	private MpegtsOutputManager mpegtsManager = null;
+
+	public void setMpegtsManager(MpegtsOutputManager mpegtsManager) {
+		this.mpegtsManager = mpegtsManager;
 	}
 	public void setHttpTak(boolean httpTak) {
 		this.httpTak = httpTak;
@@ -37,46 +44,46 @@ public class Red5TranscodeManager extends TranscodeManager {
 	public void setJpegMp3(boolean jpegMp3) {
 		this.jpegMp3 = jpegMp3;
 	}
-	private static Map<String, Red5TranscodeManager> map = new ConcurrentHashMap<String, Red5TranscodeManager>();
-	private String name;
-	/**
-	 * 個別のストリーム用のクラスの生成
-	 * @param name
-	 */
-	private Red5TranscodeManager(String name) {
-		// ストリームに対応したtranscodeManagerを作成する。
-		this.name = name;
-	}
-	private void setJpegMp3Creator() {
-		
-	}
-	private void setHttpLiveCreator() {
-		
-	}
-	private void setHttpTakCreator() {
-		
-	}
-	private void setStreamListener(IBroadcastStream stream) {
-	}
+	private Map<String, Holder> map = new ConcurrentHashMap<String, Red5TranscodeManager.Holder>();
 	/**
 	 * 変換と登録します。s
 	 * @param stream
 	 */
 	public void registerTranscoder(IBroadcastStream stream) {
-		// このストリームに対するオブジェクトを生成しておく。
-		Red5TranscodeManager manager = new Red5TranscodeManager(stream.getName());
-		map.put(stream.getName(), manager);
-		// 有効なストリームに対するCreatorを作成する。
-		if(httpTak) {
-			manager.setHttpTakCreator();
-		}
-		if(httpLive) {
-			manager.setHttpLiveCreator();
-		}
-		if(jpegMp3) {
-			manager.setJpegMp3Creator();
-		}
-		// StreamListenerを作成しておく。
-		manager.setStreamListener(stream);
+		// このクラスはストリームのtranscode命令まわりをセットアップします。
+		logger.info("変換操作を構築します。");
+		// flvHandlerFactoryに処理のHandlerを登録します。
+		FlvHandlerFactory flvFactory = FlvHandlerFactory.getFactory();
+		FlvDataQueue inputDataQueue = new FlvDataQueue();
+		FlvHandler flvHandler = new FlvHandler(inputDataQueue);
+//		FlvHandler flvHandler = new FlvHandler_Test(inputDataQueue);
+		flvFactory.registerHandler(stream.getName(), flvHandler);
+
+		// MpegtsHandlerFactoryに処理のHandlerを登録します。(今回はコンテナを開くだけで処理をしない。)
+		// こっちは適当
+		MpegtsHandlerFactory mpegtsFactory = MpegtsHandlerFactory.getFactory();
+		
+		// streamListenerを起動させておきおます。
+//		StreamListener listener = new StreamListener(stream, new FlvDataQueue_Test("/Users/taktod/output_row.flv"), null);
+		StreamListener listener = new StreamListener(stream, inputDataQueue, null);
+		listener.open();
+		Transcoder transcoder = new Transcoder(new FlvInputManager(), mpegtsManager, stream.getName());
+		Thread transcodeThread = new Thread(transcoder);
+		transcodeThread.setDaemon(true);
+		transcodeThread.start();
+		Holder holder = new Holder();
+		holder.listener = listener;
+		holder.trancoder = transcoder;
+		map.put(stream.getName(), holder);
+	}
+	public void unregisterTranscoder(IBroadcastStream stream) {
+		Holder holder = map.get(stream.getName());
+		holder.listener.close();
+		holder.trancoder.close();
+	}
+	private class Holder {
+		// streamListenerとtranscoderをセットで保持しておきます。
+		public StreamListener listener;
+		public Transcoder trancoder;
 	}
 }
