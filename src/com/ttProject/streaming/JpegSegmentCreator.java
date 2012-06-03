@@ -35,4 +35,7 @@ public class JpegSegmentCreator {
 	public void makeFramePicture(IVideoPicture picture, long timestamp) {
 		
 	}
+	public void close() {
+		
+	}
 }

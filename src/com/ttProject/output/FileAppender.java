@@ -8,6 +8,7 @@ import java.io.FileOutputStream;
  * とする。
  * とりあえずまとまった量が完成したら書き込みを実施する。appendモードは利用しない
  * とする。
+ * まぁoutputの部分は正直cronでもいいと思ってる。
  * @author taktod
  */
 public class FileAppender implements IDataAppender{

@@ -1,7 +1,7 @@
 package com.ttProject.xuggle.out.mpegts;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
 
 import com.ttProject.streaming.TsSegmentCreator;
 import com.ttProject.xuggle.Transcoder;
@@ -14,7 +14,7 @@ import com.xuggle.xuggler.io.IURLProtocolHandler;
  */
 public class MpegtsHandler implements IURLProtocolHandler {
 	/** ロガー */
-	private final Logger logger = LoggerFactory.getLogger(MpegtsHandler.class);
+//	private final Logger logger = LoggerFactory.getLogger(MpegtsHandler.class);
 	/** tsファイルのセグメントを作成オブジェクト */
 	private TsSegmentCreator creator;
 	/** transcoderオブジェクト */
@@ -85,14 +85,9 @@ public class MpegtsHandler implements IURLProtocolHandler {
 	 */
 	@Override
 	public int write(byte[] buf, int size) {
-		// 基本的にパケットがまとまって送られてくるが、たまにパケットが１回の書き込みで完了しないことがあり、そういう場合は分割されて送られてくる。
-		// 要は最終タイムスタンプと、今回のタイムスタンプが違う場合は、前回の分は満了したとおもってよい。
-		logger.info("timestamp {}, size {}, size/188 {}", new Object[]{
-				transcoder.getTimestamp(),
-				size,
-				size/188D
-		});
-		// 強制的に入力されたデータが書き込みできたことにします。
+		if(creator != null) {
+			creator.writeSegment(buf, size, transcoder.getTimestamp());
+		}
 		return size;
 	}
 }

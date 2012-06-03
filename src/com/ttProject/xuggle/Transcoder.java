@@ -1,11 +1,14 @@
 package com.ttProject.xuggle;
 
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.ttProject.streaming.JpegSegmentCreator;
+import com.ttProject.streaming.Mp3SegmentCreator;
 import com.ttProject.xuggle.in.flv.FlvInputManager;
 import com.ttProject.xuggle.out.mpegts.MpegtsOutputManager;
 import com.xuggle.xuggler.IAudioResampler;
@@ -63,9 +66,31 @@ public class Transcoder implements Runnable {
 	/** 動作定義 */
 	private volatile boolean keepRunning = true; // 動作中フラグ
 	/** 時刻操作 */
-	private long timestamp;
+	private long timestamp = 0;
+	/** mp3のセグメント作成 */
+	private Mp3SegmentCreator mp3SegmentCreator = null;
+	/** jpegのセグメント作成 */
+	private JpegSegmentCreator jpegSegmentCreator = null;
+	/**
+	 * タイムスタンプ応答
+	 * @return
+	 */
 	public long getTimestamp() {
 		return timestamp;
+	}
+	/**
+	 * タイムスタンプを計算します。(ミリ秒単位に書き換えて扱います。)
+	 * @param packet
+	 */
+	private void setTimestamp(IPacket packet) {
+		if(packet == null) {
+			return;
+		}
+		IRational timebase = packet.getTimeBase();
+		if(timebase == null) {
+			return;
+		}
+		timestamp = packet.getTimeStamp() * 1000 * timebase.getNumerator() / timebase.getDenominator();
 	}
 	/**
 	 * コンストラクタ
@@ -74,7 +99,9 @@ public class Transcoder implements Runnable {
 	public Transcoder(
 			FlvInputManager inputManager,
 			MpegtsOutputManager outputManager,
-			String name) {
+			String name,
+			Mp3SegmentCreator mp3SegmentCreator,
+			JpegSegmentCreator jpegSegmentCreator) {
 		logger.info("トランスコーダーの初期化");
 		outputStreamInfo = outputManager.getStreamInfo();
 		videoProperties.putAll(outputManager.getVideoProperty());
@@ -85,6 +112,8 @@ public class Transcoder implements Runnable {
 		outputProtocol = outputManager.getProtocol();
 		outputFormat   = outputManager.getFormat();
 		taskName = name;
+		this.mp3SegmentCreator  = mp3SegmentCreator;
+		this.jpegSegmentCreator = jpegSegmentCreator;
 	}
 	/**
 	 * threadの実行
@@ -158,12 +187,13 @@ public class Transcoder implements Runnable {
 				break;
 			}
 			IPacket decodePacket = packet;
-			timestamp = packet.getTimeStamp();
+			timestamp = 0;
 			// 入力コーダーを開きます。
 			if(!checkInputCoder(decodePacket)) {
 				// 処理する必要のないパケットなのでスキップします。
 				continue;
 			}
+			timestamp = packet.getTimeStamp();
 			// 各エレメントの変換処理に移行します。
 			int index = decodePacket.getStreamIndex();
 			if(index == audioStreamId) {
@@ -246,6 +276,7 @@ public class Transcoder implements Runnable {
 	 * 出力videoコーダーを開きます。
 	 */
 	private void openOutputVideoCoder() {
+		logger.info("videoコーダーを開きます。");
 		IStream outStream = outputContainer.addNewStream(outputContainer.getNumStreams());
 		if(outStream == null) {
 			throw new RuntimeException("video出力用のストリーム生成ができませんでした。");
@@ -259,6 +290,7 @@ public class Transcoder implements Runnable {
 		outCoder.setWidth(outputStreamInfo.getVideoWidth());
 		outCoder.setHeight(outputStreamInfo.getVideoHeight());
 		outCoder.setPixelType(outputStreamInfo.getVideoPixelFormat());
+		logger.info(outputStreamInfo.getVideoPixelFormat().toString());
 		outCoder.setGlobalQuality(outputStreamInfo.getVideoGlobalQuality());
 		outCoder.setBitRate(outputStreamInfo.getVideoBitRate());
 		outCoder.setFrameRate(outputStreamInfo.getVideoFrameRate());
@@ -287,6 +319,7 @@ public class Transcoder implements Runnable {
 	 * 出力audioコーダーを開きます。
 	 */
 	private void openOutputAudioCoder() {
+		logger.info("audioCoderを開きます。");
 		IStream outStream = outputContainer.addNewStream(outputContainer.getNumStreams());
 		if(outStream == null) {
 			throw new RuntimeException("audio出力用のストリーム生成ができませんでした。");
@@ -493,17 +526,24 @@ public class Transcoder implements Runnable {
 		while(numSamplesConsumed < preEncode.getNumSamples()) {
 			retval = outputAudioCoder.encodeAudio(outPacket, preEncode, numSamplesConsumed);
 			if(retval <= 0) {
-//				throw new RuntimeException("audioをエンコードすることができませんでした。");
-				System.out.println("audioエンコードに失敗しましたが、このまま続けます。");
+				logger.info("audioエンコードに失敗しましたが、このまま続けます。");
 				break;
 			}
 			else {
-				System.out.println("audioエンコードに成功しました。");
+				logger.info("audioエンコード成功");
 			}
 			numSamplesConsumed += retval;
 			
 			if(outPacket.isComplete()) {
 				// ここで出力ファイルができあがる。
+				if(mp3SegmentCreator != null) {
+					ByteBuffer b = outPacket.getByteBuffer();
+					byte[] data = new byte[b.limit()];
+					b.get(data);
+					// timestampとしては、大本の方がほしいので、修正が必要
+					mp3SegmentCreator.writeSegment(data, b.limit(), getTimestamp());
+				}
+				setTimestamp(outPacket);
 				outputContainer.writePacket(outPacket);
 			}
 		}
@@ -528,6 +568,10 @@ public class Transcoder implements Runnable {
 			
 			IVideoPicture postDecode = inPicture;
 			if(postDecode.isComplete()) {
+				// このタイミングで必要があるなら、jpegコンバートしておく。
+				if(jpegSegmentCreator != null) {
+					jpegSegmentCreator.makeFramePicture(postDecode, getTimestamp());
+				}
 				reSample = resampleVideo(postDecode);
 				
 				if(reSample.isComplete()) {
@@ -572,13 +616,18 @@ public class Transcoder implements Runnable {
 		if(preEncode.isComplete()) {
 			retval = outputVideoCoder.encodeVideo(outPacket, preEncode, 0);
 			if(retval <= 0) {
-				System.out.println("videoのエンコードに失敗しましたが、そのまま続けます。");
+				logger.info("videoエンコードに失敗しましたが、このまま続けます。");
 			}
 			else {
-				System.out.println("videoのエンコードに成功");
+				logger.info("videoエンコードに成功しました。");
 				numBytesConsumed += retval;
 			}
 			if(outPacket.isComplete()) {
+				if(mp3SegmentCreator != null) {
+					// timestampとしては、大本の方がほしいので、修正が必要
+					mp3SegmentCreator.updateSegment(getTimestamp());
+				}
+				setTimestamp(outPacket);
 				outputContainer.writePacket(outPacket);
 			}
 		}
