@@ -71,6 +71,11 @@ public class Transcoder implements Runnable {
 	private Mp3SegmentCreator mp3SegmentCreator = null;
 	/** jpegのセグメント作成 */
 	private JpegSegmentCreator jpegSegmentCreator = null;
+	/** 動画パケットがキーフレームであるか確認 */
+	private boolean isKey = false;
+	public boolean isKey() {
+		return isKey;
+	}
 	/**
 	 * タイムスタンプ応答
 	 * @return
@@ -526,11 +531,11 @@ public class Transcoder implements Runnable {
 		while(numSamplesConsumed < preEncode.getNumSamples()) {
 			retval = outputAudioCoder.encodeAudio(outPacket, preEncode, numSamplesConsumed);
 			if(retval <= 0) {
-				logger.info("audioエンコードに失敗しましたが、このまま続けます。");
+//				logger.info("audioエンコードに失敗しましたが、このまま続けます。");
 				break;
 			}
 			else {
-				logger.info("audioエンコード成功");
+//				logger.info("audioエンコード成功");
 			}
 			numSamplesConsumed += retval;
 			
@@ -543,7 +548,9 @@ public class Transcoder implements Runnable {
 					// timestampとしては、大本の方がほしいので、修正が必要
 					mp3SegmentCreator.writeSegment(data, b.limit(), getTimestamp());
 				}
+//				System.out.println("audioデータの書き込み1?");
 				setTimestamp(outPacket);
+//				System.out.println("audioデータの書き込み2?");
 				outputContainer.writePacket(outPacket);
 			}
 		}
@@ -616,10 +623,10 @@ public class Transcoder implements Runnable {
 		if(preEncode.isComplete()) {
 			retval = outputVideoCoder.encodeVideo(outPacket, preEncode, 0);
 			if(retval <= 0) {
-				logger.info("videoエンコードに失敗しましたが、このまま続けます。");
+//				logger.info("videoエンコードに失敗しましたが、このまま続けます。");
 			}
 			else {
-				logger.info("videoエンコードに成功しました。");
+//				logger.info("videoエンコードに成功しました。");
 				numBytesConsumed += retval;
 			}
 			if(outPacket.isComplete()) {
@@ -628,6 +635,7 @@ public class Transcoder implements Runnable {
 					mp3SegmentCreator.updateSegment(getTimestamp());
 				}
 				setTimestamp(outPacket);
+				isKey = outPacket.isKey(); // 映像側のキーフレームデータを保存しておく。ffmpegのgパラメーターでキーフレームの間隔を適当にいれてやっておく。
 				outputContainer.writePacket(outPacket);
 			}
 		}
