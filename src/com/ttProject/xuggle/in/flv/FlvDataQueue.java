@@ -1,5 +1,6 @@
 package com.ttProject.xuggle.in.flv;
 
+import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -12,12 +13,28 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class FlvDataQueue {
 	/** データを保持しておく。queue */
 	LinkedBlockingQueue<ByteBuffer> dataQueue = new LinkedBlockingQueue<ByteBuffer>();
+	private FileOutputStream fos;
+	public FlvDataQueue() {
+		try {
+			fos = new FileOutputStream("/home/poepoemix/www/stest/sample.flv");
+		}
+		catch (Exception e) {
+		}
+	}
 	/**
 	 * headerデータを設定します。
 	 * @param header
 	 */
 	public void putHeaderData(ByteBuffer header) {
 		dataQueue.add(header.duplicate());
+		try {
+			ByteBuffer buf = header.duplicate();
+			byte[] data = new byte[buf.limit()];
+			buf.get(data);
+			fos.write(data);
+		}
+		catch (Exception e) {
+		}
 	}
 	/**
 	 * tagデータを更新します。
@@ -25,6 +42,14 @@ public class FlvDataQueue {
 	 */
 	public void putTagData(ByteBuffer tag) {
 		dataQueue.add(tag.duplicate());
+		try {
+			ByteBuffer buf = tag.duplicate();
+			byte[] data = new byte[buf.limit()];
+			buf.get(data);
+			fos.write(data);
+		}
+		catch (Exception e) {
+		}
 	}
 	/**
 	 * 動作が停止するときの動作
@@ -33,6 +58,14 @@ public class FlvDataQueue {
 		if(dataQueue != null) {
 			dataQueue.clear(); // dataQueueの待ちがある場合にこまる。
 			dataQueue = null;
+		}
+		if(fos != null) {
+			try {
+				fos.close();
+			}
+			catch (Exception e) {
+			}
+			fos = null;
 		}
 	}
 	/**
