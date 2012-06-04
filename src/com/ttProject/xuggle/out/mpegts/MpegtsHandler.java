@@ -3,6 +3,8 @@ package com.ttProject.xuggle.out.mpegts;
 //import org.slf4j.Logger;
 //import org.slf4j.LoggerFactory;
 
+//import java.io.FileOutputStream;
+
 import com.ttProject.streaming.TsSegmentCreator;
 import com.ttProject.xuggle.Transcoder;
 import com.xuggle.xuggler.io.IURLProtocolHandler;
@@ -18,7 +20,8 @@ public class MpegtsHandler implements IURLProtocolHandler {
 	/** tsファイルのセグメントを作成オブジェクト */
 	private TsSegmentCreator creator;
 	/** transcoderオブジェクト */
-	Transcoder transcoder;
+	private Transcoder transcoder;
+//	private FileOutputStream fos = null;
 	/**
 	 * コンストラクタ
 	 * @param creator
@@ -33,6 +36,15 @@ public class MpegtsHandler implements IURLProtocolHandler {
 	 */
 	@Override
 	public int close() {
+/*		System.out.println("closeがよばれました。");
+		if(fos != null) {
+			try {
+				fos.close();
+			}
+			catch (Exception e) {
+			}
+			fos = null;
+		}*/
 		return 0;
 	}
 	/**
@@ -53,6 +65,14 @@ public class MpegtsHandler implements IURLProtocolHandler {
 	 */
 	@Override
 	public int open(String url, int flags) {
+/*		try {
+			System.out.println("try to open tssample.ts");
+			fos = new FileOutputStream("/home/poepoemix/www/stest/tssample.ts");
+			System.out.println("fosのオープンおわり。");
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}*/
 		return 0;
 	}
 	/**
@@ -85,8 +105,16 @@ public class MpegtsHandler implements IURLProtocolHandler {
 	 */
 	@Override
 	public int write(byte[] buf, int size) {
+/*		if(fos != null) {
+			try {
+				fos.write(buf);
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
+		}*/
 		if(creator != null) {
-			creator.writeSegment(buf, size, transcoder.getTimestamp());
+			creator.writeSegment(buf, size, transcoder.getTimestamp(), transcoder.isKey());
 		}
 		return size;
 	}
