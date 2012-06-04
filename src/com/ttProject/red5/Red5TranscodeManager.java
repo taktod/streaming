@@ -49,32 +49,33 @@ public class Red5TranscodeManager {
 	public void registerTranscoder(IBroadcastStream stream) {
 		// このクラスはストリームのtranscode命令まわりをセットアップします。
 		logger.info("変換操作を構築します。");
+		String name = stream.getPublishedName();
 		// creatorの作成
 		TsSegmentCreator tsSegmentCreator = null;
 		if(this.tsSegmentCreator != null) {
 			tsSegmentCreator = new TsSegmentCreator();
-			tsSegmentCreator.initialize(stream.getName());
+			tsSegmentCreator.initialize(name);
 		}
 		Mp3SegmentCreator mp3SegmentCreator = null;
 		if(this.mp3SegmentCreator != null) {
 			mp3SegmentCreator = new Mp3SegmentCreator();
-			mp3SegmentCreator.initialize(stream.getName(), mpegtsManager);//こいつはtranscoderに渡す必要あり。
+			mp3SegmentCreator.initialize(name, mpegtsManager);//こいつはtranscoderに渡す必要あり。
 		}
 		JpegSegmentCreator jpegSegmentCreator = null;
 		TakSegmentCreator takSegmentCreator = null;
 
 		// 変換プロセスの構築
-		Transcoder transcoder = new Transcoder(new FlvInputManager(), mpegtsManager, stream.getName(), mp3SegmentCreator, jpegSegmentCreator);
+		Transcoder transcoder = new Transcoder(new FlvInputManager(), mpegtsManager, name, mp3SegmentCreator, jpegSegmentCreator);
 		// flvHandlerFactoryに処理のHandlerを登録します。
 		FlvHandlerFactory flvFactory = FlvHandlerFactory.getFactory();
 		FlvDataQueue inputDataQueue = new FlvDataQueue();
 		FlvHandler flvHandler = new FlvHandler(inputDataQueue);
-		flvFactory.registerHandler(stream.getName(), flvHandler);
+		flvFactory.registerHandler(name, flvHandler);
 
 		// MpegtsHandlerFactoryに処理のHandlerを登録します。(今回はコンテナを開くだけで処理をしない。)
 		MpegtsHandlerFactory mpegtsFactory = MpegtsHandlerFactory.getFactory();
 		MpegtsHandler mpegtsHandler = new MpegtsHandler(tsSegmentCreator, transcoder);
-		mpegtsFactory.registerHandler(stream.getName(), mpegtsHandler);
+		mpegtsFactory.registerHandler(name, mpegtsHandler);
 
 		// streamListenerを起動させておきおます。
 		StreamListener listener = new StreamListener(stream, inputDataQueue, takSegmentCreator);
