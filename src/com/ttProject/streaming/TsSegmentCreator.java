@@ -1,7 +1,10 @@
 package com.ttProject.streaming;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +52,13 @@ public class TsSegmentCreator {
 		if(!(new File(tmpTarget)).mkdirs()) {
 			throw new RuntimeException("mpegts用の一時ディレクトリの作成に失敗");
 		}
+		reset();
+	}
+	/**
+	 * 始めからやりなおします。
+	 */
+	public void reset() {
+		close();
 		// カウンターをリセットしておく。
 		counter = 0;
 		nextStartPos = duration;
@@ -69,11 +79,11 @@ public class TsSegmentCreator {
 	 * @param size
 	 * @param timestamp
 	 */
-	public void writeSegment(byte[] buf, int size, long timestamp) {
+	public void writeSegment(byte[] buf, int size, long timestamp, boolean isKey) {
 		// ここでは特に考えもなく、bufデータが送られてきてしまうので、それを追記しまくっていく。よってclose処理が必要。
 		if(outputStream != null) {
 			try {
-				if(timestamp > nextStartPos) {
+				if(timestamp > nextStartPos && isKey) {
 					logger.info("timestamp {}, nextPos {}", new Object[]{
 							timestamp,
 							nextStartPos
@@ -81,12 +91,71 @@ public class TsSegmentCreator {
 					// タイムスタンプが次の開始位置以降の場合
 					outputStream.close();
 					outputStream = new FileOutputStream(tmpTarget + counter + ".ts");
-					nextStartPos += duration;
+					PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(tmpTarget + "hoge.m3u8")));
+					pw.println("#EXTM3U");
+					pw.println("#EXT-X-ALLOW-CACHE:NO");
+					pw.println("#EXT-X-TARGETDURATION:" + (int)(duration / 1000 + 1));
+					if(counter - 5 >= 0) {
+						pw.println("#EXT-X-MEDIA-SEQUENCE:" + (counter - 5));
+						pw.println("#EXTINF:" + (int)(duration / 1000 + 1));
+						pw.println((counter - 5) + ".ts");
+						pw.println("#EXTINF:" + (int)(duration / 1000 + 1));
+						pw.println((counter - 4) + ".ts");
+						pw.println("#EXTINF:" + (int)(duration / 1000 + 1));
+						pw.println((counter - 3) + ".ts");
+						pw.println("#EXTINF:" + (int)(duration / 1000 + 1));
+						pw.println((counter - 2) + ".ts");
+						pw.println("#EXTINF:" + (int)(duration / 1000 + 1));
+						pw.println((counter - 1) + ".ts");
+					}
+					else if(counter - 4 >= 0) { 
+						pw.println("#EXT-X-MEDIA-SEQUENCE:" + (counter - 4));
+						pw.println("#EXTINF:" + (int)(duration / 1000 + 1));
+						pw.println((counter - 4) + ".ts");
+						pw.println("#EXTINF:" + (int)(duration / 1000 + 1));
+						pw.println((counter - 3) + ".ts");
+						pw.println("#EXTINF:" + (int)(duration / 1000 + 1));
+						pw.println((counter - 2) + ".ts");
+						pw.println("#EXTINF:" + (int)(duration / 1000 + 1));
+						pw.println((counter - 1) + ".ts");
+					}
+					else if(counter - 3 >= 0) {
+						pw.println("#EXT-X-MEDIA-SEQUENCE:" + (counter - 3));
+						pw.println("#EXTINF:" + (int)(duration / 1000 + 1));
+						pw.println((counter - 3) + ".ts");
+						pw.println("#EXTINF:" + (int)(duration / 1000 + 1));
+						pw.println((counter - 2) + ".ts");
+						pw.println("#EXTINF:" + (int)(duration / 1000 + 1));
+						pw.println((counter - 1) + ".ts");
+					}
+					else if(counter - 2 >= 0) { 
+						pw.println("#EXT-X-MEDIA-SEQUENCE:" + (counter - 2));
+						pw.println("#EXTINF:" + (int)(duration / 1000 + 1));
+						pw.println((counter - 2) + ".ts");
+						pw.println("#EXTINF:" + (int)(duration / 1000 + 1));
+						pw.println((counter - 1) + ".ts");
+					}
+					else if(counter - 1 >= 0) {
+						pw.println("#EXT-X-MEDIA-SEQUENCE:0");
+						pw.println("#EXTINF:" + (int)(duration / 1000 + 1));
+						pw.println((counter - 1) + ".ts");
+					}
+					else {
+						pw.println("#EXT-X-MEDIA-SEQUENCE:0");
+					}
+					pw.println("#EXTINF:" + (int)(duration / 1000 + 1));
+					pw.println(counter + ".ts");
+					pw.println();
+					pw.close();
+					pw = null;
+					nextStartPos = timestamp + duration;
 					counter ++;
 				}
 				outputStream.write(buf);
 			}
 			catch (Exception e) {
+				// もしかして、書き込みミスが発生している？
+				e.printStackTrace();
 			}
 		}
 	}
