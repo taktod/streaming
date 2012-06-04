@@ -192,6 +192,11 @@ public class StreamListener implements IStreamListener {
 				if(dataPacket.getFrameType() == FrameType.DISPOSABLE_INTERFRAME) {
 					// disposable interframeの場合はxuggleに渡さない→xuggleのffmpeg動作がバグって映像パケットエラーになるため。
 					return;
+/*					tagBuffer.position(11);
+					byte b = (byte)((tagBuffer.get() & 0x0F) + 0x20);
+					tagBuffer.position(11);
+					tagBuffer.put(b);
+					tagBuffer.position(0);*/
 				}
 			}
 			// ここでビデオタグの場合のデータについて調査しなければいけない。
