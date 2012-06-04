@@ -9,12 +9,14 @@ import com.xuggle.xuggler.IVideoPicture;
 public class JpegSegmentCreator {
 	/** 仮のパス */
 	private String tmpPath;
-	/** 縦横サイズを固定するか */
+	/** 縦横サイズを固定するか(falseならwidthとheightは無視) */
 	private boolean fixSize;
 	/** 横幅 */
 	private int width;
 	/** 縦幅 */
 	private int height;
+	/** １枚の画像に複数データを載せてダウンロードコストを落とすかどうか？ */
+	private boolean fourPicBoost;
 	public void setTmpPath(String tmpPath) {
 		this.tmpPath = tmpPath;
 	}

@@ -10,13 +10,22 @@ public class Test {
 	 * @param args
 	 */
 	public static void main(String[] args) throws Exception {
-		String path = "/home/taktod/hogehoge";
-		String name = "jpeg";
-		if(path.endsWith("/")) {
-			System.out.println("/");
+		ByteBuffer buf = ByteBuffer.allocate(100);
+		for(int i = 0;i < 50;i ++) {
+			buf.put((byte)i);
 		}
-		else {
-			System.out.println("b");
-		}
+		buf.flip();
+		byte[] data = new byte[buf.limit()];
+		buf.get(data);
+		System.out.println(HexDump.toHexString(data));
+		buf.flip();
+		buf.position(5);
+		System.out.println(buf.get());
+		buf.position(5);
+		buf.put((byte)0xFF);
+		buf.position(0);
+		data = new byte[buf.limit()];
+		buf.get(data);
+		System.out.println(HexDump.toHexString(data));
 	}
 }
