@@ -5,9 +5,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.flazr.io.flv.FlvAtom;
+import com.flazr.io.flv.VideoTag;
+import com.flazr.io.flv.VideoTag.FrameType;
 import com.flazr.rtmp.RtmpHeader;
 import com.flazr.rtmp.RtmpMessage;
 import com.flazr.rtmp.RtmpWriter;
+import com.flazr.rtmp.message.MessageType;
 
 /**
  * 独自のFlvWriterの動作
@@ -80,6 +83,12 @@ public class FlvWriter implements RtmpWriter {
 	 * @param flvAtom
 	 */
 	private void write(final FlvAtom flvAtom) {
+		if(flvAtom.getHeader().isVideo()) {
+			VideoTag videoTag = new VideoTag(flvAtom.encode().getByte(0));
+			if(videoTag.getFrameType() == FrameType.DISPOSABLE_INTER) {
+				// TODO red5のときにxuggleに渡さなかったdisposable interframe. flazrならいけるか？
+			}
+		}
 		try {
 			// このデータをFlvDataQueueに渡せばOK
 			flvAtom.write().toByteBuffer();
