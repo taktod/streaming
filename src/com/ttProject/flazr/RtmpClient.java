@@ -32,7 +32,8 @@ public class RtmpClient {
 		final int count = options.getLoad();
 		if(count == 1 && options.getClientOptionsList() == null) {
 			// TODO 単一接続だけ面倒をみる場合はここで、接続に対するflvWriterを書いてやればよい。
-			options.setWriterToSave(new FlvWriter(options.getStreamName()));
+//			options.setWriterToSave(new FlvWriter(options.getStreamName()));
+			options.setWriterToSave(new StdoutWriter());
 			connect(options);
 			return;
 		}

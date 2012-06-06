@@ -3,6 +3,7 @@ package com.ttProject.flazr;
 import java.nio.ByteBuffer;
 
 import org.jboss.netty.buffer.ChannelBuffer;
+import org.red5.io.utils.HexDump;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +31,9 @@ public class StdoutWriter implements RtmpWriter {
 		try {
 			ByteBuffer buffer = FlvAtom.flvHeader().toByteBuffer();
 			byte[] data = new byte[buffer.limit()];
+			buffer.get(data);
 			System.out.write(data);
+//			System.out.println(HexDump.toHexString(data));
 		}
 		catch (Exception e) {
 			logger.error("", e);
@@ -71,13 +74,17 @@ public class StdoutWriter implements RtmpWriter {
 			VideoTag videoTag = new VideoTag(flvAtom.encode().getByte(0));
 			if(videoTag.getFrameType() == FrameType.DISPOSABLE_INTER) {
 				// TODO red5のときにxuggleに渡さなかったdisposable interframe. flazrならいけるか？
+				// よくわからんDTSエラーがでる。timestampがひっくり返るデータができることはHttpTakStreamingをつくったときにわかっているので、その兼ね合いですかね？
+				return;
 			}
 		}
  		try {
 			// このデータをFlvDataQueueに渡せばOK
 			ByteBuffer buffer = flvAtom.write().toByteBuffer();
 			byte[] data = new byte[buffer.limit()];
+			buffer.get(data);
 			System.out.write(data);
+//			System.out.println(HexDump.toHexString(data));
 		}
 		catch (Exception e) {
 			logger.error("", e);
