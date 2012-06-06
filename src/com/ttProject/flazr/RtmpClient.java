@@ -24,7 +24,6 @@ public class RtmpClient {
 	private static final Logger logger = LoggerFactory.getLogger(RtmpClient.class);
 
 	public static void main(String[] args) {
-		System.out.println();
 		final ClientOptions options = new ClientOptions();
 		if(!options.parseCli(args)) {
 			return;

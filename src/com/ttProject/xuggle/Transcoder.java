@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.red5.io.utils.HexDump;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -191,6 +192,8 @@ public class Transcoder implements Runnable {
 				keepRunning = false;
 				break;
 			}
+			logger.info("timestamp:" + packet.getTimeStamp());
+			
 			IPacket decodePacket = packet;
 			timestamp = 0;
 			// 入力コーダーを開きます。
