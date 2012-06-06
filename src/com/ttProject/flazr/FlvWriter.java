@@ -2,7 +2,6 @@ package com.ttProject.flazr;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
-import java.util.Map;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.slf4j.Logger;
