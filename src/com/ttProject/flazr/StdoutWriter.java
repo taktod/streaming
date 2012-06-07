@@ -1,15 +1,15 @@
 package com.ttProject.flazr;
 
+import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.jboss.netty.buffer.ChannelBuffer;
-import org.red5.io.utils.HexDump;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.flazr.io.flv.FlvAtom;
 import com.flazr.io.flv.VideoTag;
-import com.flazr.io.flv.VideoTag.FrameType;
 import com.flazr.rtmp.RtmpHeader;
 import com.flazr.rtmp.RtmpMessage;
 import com.flazr.rtmp.RtmpWriter;
@@ -24,6 +24,8 @@ public class StdoutWriter implements RtmpWriter {
 	private static final Logger logger = LoggerFactory.getLogger(StdoutWriter.class);
 	private final int[] channelTimes = new int[RtmpHeader.MAX_CHANNEL_ID];
 	private int primaryChannel = -1;
+	private ConcurrentLinkedQueue<FlvAtom> dataQueue = new ConcurrentLinkedQueue<FlvAtom>();
+	private FileOutputStream fos;
 	/**
 	 * コンストラクタ
 	 */
@@ -72,22 +74,49 @@ public class StdoutWriter implements RtmpWriter {
 	private void write(final FlvAtom flvAtom) {
 		if(flvAtom.getHeader().isVideo()) {
 			VideoTag videoTag = new VideoTag(flvAtom.encode().getByte(0));
-			if(videoTag.getFrameType() == FrameType.DISPOSABLE_INTER) {
-				// TODO red5のときにxuggleに渡さなかったdisposable interframe. flazrならいけるか？
-				// よくわからんDTSエラーがでる。timestampがひっくり返るデータができることはHttpTakStreamingをつくったときにわかっているので、その兼ね合いですかね？
-				return;
+ 			// queueの中身をすべて外にだして、現在のタイムスタンプ以前のものなら、書き込みを実施する。
+			ConcurrentLinkedQueue<FlvAtom> queue = new ConcurrentLinkedQueue<FlvAtom>();
+ 			while(dataQueue.size() > 0) {
+ 				FlvAtom data = dataQueue.poll();
+				if(data.getHeader().getTime() <= flvAtom.getHeader().getTime()) {
+			 		try {
+	 		 			// このデータをFlvDataQueueに渡せばOK
+	 		 			logger.info("audioTimestamp:" + data.getHeader().getTime());
+	 					ByteBuffer buffer = data.write().toByteBuffer();
+	 					byte[] dat = new byte[buffer.limit()];
+	 					buffer.get(dat);
+	 					System.out.write(dat);
+	 				}
+	 				catch (Exception e) {
+	 					logger.error("", e);
+	 				}
+ 				}
+ 				else {
+ 					queue.add(data);
+ 				}
+ 			}
+ 			dataQueue = queue;
+ 			logger.info("queueSize:" + dataQueue.size());
+			logger.info("videoTimestamp:" + flvAtom.getHeader().getTime());
+			try {
+				ByteBuffer buffer = flvAtom.write().toByteBuffer();
+				byte[] dat = new byte[buffer.limit()];
+				buffer.get(dat);
+				System.out.write(dat);
+			}
+			catch (Exception e) {
+				
 			}
 		}
- 		try {
-			// このデータをFlvDataQueueに渡せばOK
-			ByteBuffer buffer = flvAtom.write().toByteBuffer();
-			byte[] data = new byte[buffer.limit()];
-			buffer.get(data);
-			System.out.write(data);
-//			System.out.println(HexDump.toHexString(data));
-		}
-		catch (Exception e) {
-			logger.error("", e);
+		else if(flvAtom.getHeader().isAudio()) {
+			// audioデータはすべてqueueにいれる。
+	 		try {
+				// このデータをFlvDataQueueに渡せばOK
+				dataQueue.add(flvAtom);
+			}
+			catch (Exception e) {
+				logger.error("", e);
+			}
 		}
 	}
 	/**
@@ -95,5 +124,10 @@ public class StdoutWriter implements RtmpWriter {
 	 */
 	@Override
 	public void close() {
+		try {
+			fos.close();
+		}
+		catch (Exception e) {
+		}
 	}
 }
