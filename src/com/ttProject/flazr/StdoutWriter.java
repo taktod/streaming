@@ -9,7 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.flazr.io.flv.FlvAtom;
-import com.flazr.io.flv.VideoTag;
+//import com.flazr.io.flv.VideoTag;
 import com.flazr.rtmp.RtmpHeader;
 import com.flazr.rtmp.RtmpMessage;
 import com.flazr.rtmp.RtmpWriter;
@@ -73,7 +73,7 @@ public class StdoutWriter implements RtmpWriter {
 	 */
 	private void write(final FlvAtom flvAtom) {
 		if(flvAtom.getHeader().isVideo()) {
-			VideoTag videoTag = new VideoTag(flvAtom.encode().getByte(0));
+//			VideoTag videoTag = new VideoTag(flvAtom.encode().getByte(0));
  			// queueの中身をすべて外にだして、現在のタイムスタンプ以前のものなら、書き込みを実施する。
 			ConcurrentLinkedQueue<FlvAtom> queue = new ConcurrentLinkedQueue<FlvAtom>();
  			while(dataQueue.size() > 0) {
