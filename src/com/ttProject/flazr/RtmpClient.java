@@ -32,8 +32,8 @@ public class RtmpClient {
 		final int count = options.getLoad();
 		if(count == 1 && options.getClientOptionsList() == null) {
 			// TODO 単一接続だけ面倒をみる場合はここで、接続に対するflvWriterを書いてやればよい。
-//			options.setWriterToSave(new FlvWriter(options.getStreamName()));
-			options.setWriterToSave(new StdoutWriter());
+			options.setWriterToSave(new TranscodeWriter(options.getStreamName()));
+//			options.setWriterToSave(new StdoutWriter());
 			connect(options);
 			return;
 		}
@@ -51,7 +51,7 @@ public class RtmpClient {
 					executor.execute(new Runnable() {
 						@Override public void run() {
 							// TODO 複数接続で面倒をみる場合はここで、接続に対するflvWriterを個々に書いてやればよい。
-							tempOptions.setWriterToSave(new FlvWriter(tempOptions.getStreamName()));
+							tempOptions.setWriterToSave(new TranscodeWriter(tempOptions.getStreamName()));
 							final ClientBootstrap bootstrap = getBootstrap(executor, tempOptions);
 							bootstrap.connect(new InetSocketAddress(tempOptions.getHost(), tempOptions.getPort()));
 							logger.info("line #{}, spawned connection #{}", tempLine + 1, index);
