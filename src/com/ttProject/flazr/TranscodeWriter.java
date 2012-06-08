@@ -28,9 +28,9 @@ import com.ttProject.xuggle.out.mpegts.MpegtsOutputManager;
  * オリジナルはClientHandlerの内部で生成されています。
  * @author taktod
  */
-public class FlvWriter implements RtmpWriter {
+public class TranscodeWriter implements RtmpWriter {
 	/** ロガー */
-	private static final Logger logger = LoggerFactory.getLogger(FlvWriter.class);
+	private static final Logger logger = LoggerFactory.getLogger(TranscodeWriter.class);
 
 	/** 動作ストリーム名 */
 //	private String name;
@@ -44,7 +44,7 @@ public class FlvWriter implements RtmpWriter {
 	 * コンストラクタ
 	 * @param name
 	 */
-	public FlvWriter(String name) {
+	public TranscodeWriter(String name) {
 //		this.name = name;
 		// TODO 対象ストリームに対するプログラムをいれておく。(transcoderの定義とかそのあたり)
 		MpegtsOutputManager mpegtsManager = new MpegtsOutputManager();
