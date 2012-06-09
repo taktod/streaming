@@ -2,7 +2,6 @@ package com.ttProject.xuggle.in.flv;
 
 import java.nio.ByteBuffer;
 
-import org.red5.io.utils.HexDump;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,7 +96,7 @@ public class FlvHandler implements IURLProtocolHandler {
 				// まだ読み込み可能な場合
 				byte[] readBytes = new byte[packet.remaining()];
 				packet.get(readBytes);
-				logger.info(HexDump.toHexString(readBytes));
+//				logger.info(HexDump.toHexString(readBytes));
 				readBuffer.put(readBytes);
 			}
 		}

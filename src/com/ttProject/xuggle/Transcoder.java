@@ -195,7 +195,7 @@ public class Transcoder implements Runnable {
 //			ByteBuffer buffer = packet.getByteBuffer().duplicate();
 //			byte[] readByte = new byte[buffer.limit()];
 //			buffer.get(readByte);
-//			logger.info(HexDump.toHexString(readByte));
+//å			logger.info(HexDump.toHexString(readByte));
 
 			// timestampの確認
 //			logger.info("timestamp:" + packet.getTimeStamp());
@@ -399,6 +399,7 @@ public class Transcoder implements Runnable {
 			}
 			isAudioResamplerChecked = false;
 			inputAudioCoder = coder;
+//			logger.info("inputAudioCoder: {}", inputAudioCoder);
 		}
 		else if(coder.getCodecType() == ICodec.Type.CODEC_TYPE_VIDEO) {
 			if(inputVideoCoder == null) {
@@ -482,6 +483,7 @@ public class Transcoder implements Runnable {
 	 * @param targetPacket
 	 */
 	private void executeAudio(IPacket targetPacket) {
+//		logger.info("audioData: {}", targetPacket);
 		int retval = -1;
 		IAudioSamples inSamples = IAudioSamples.make(1024, inputAudioCoder.getChannels());
 		IAudioSamples reSamples = null;
