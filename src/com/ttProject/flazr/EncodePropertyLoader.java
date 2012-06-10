@@ -16,16 +16,16 @@ import com.ttProject.xuggle.out.mpegts.MpegtsOutputManager;
  * encode.propertiesのデータを読み込むローダー
  */
 public class EncodePropertyLoader {
-	private FlvInputManager     flvInputManager     = null;
-	private MpegtsOutputManager mpegtsOutputManager = null;
-	private TsSegmentCreator   tsSegmentCreator   = null;
-	private Mp3SegmentCreator  mp3SegmentCreator  = null;
-	private JpegSegmentCreator jpegSegmentCreator = null;
-	private TakSegmentCreator  takSegmentCreator  = null;
+	private static FlvInputManager     flvInputManager     = null;
+	private static MpegtsOutputManager mpegtsOutputManager = null;
+	private static TsSegmentCreator   tsSegmentCreator   = null;
+	private static Mp3SegmentCreator  mp3SegmentCreator  = null;
+	private static JpegSegmentCreator jpegSegmentCreator = null;
+	private static TakSegmentCreator  takSegmentCreator  = null;
 	/**
 	 * 読み込みを実行する。
 	 */
-	public void load() {
+	static {
 		// 入力は固定でOKということにしておきます。
 		flvInputManager = new FlvInputManager();
 		try {
@@ -44,14 +44,14 @@ public class EncodePropertyLoader {
 	 * mpegtsの出力定義を作成する。
 	 * @param encodeProp
 	 */
-	private void setupMpegtsOutputManager(Properties prop) throws Exception {
+	private static void setupMpegtsOutputManager(Properties prop) throws Exception {
 		Map<String, String> propMap = null;
 		Map<String, Boolean> flagMap = null;
 		if("true".equals(prop.get("mpegtsOutputManager"))) {
 			mpegtsOutputManager = new MpegtsOutputManager();
 			for(Object _key : prop.keySet()) {
 				String key = (String)_key;
-				if(!(key).startsWith("mpegtsOutputManager")) {
+				if(!key.startsWith("mpegtsOutputManager")) {
 					continue;
 				}
 				if("mpegtsOutputManager.audioBitRate".equals(key)) {
@@ -112,36 +112,91 @@ public class EncodePropertyLoader {
 			mpegtsOutputManager = null;
 		}
 	}
-	private void setupTsSegmentCreator(Properties encodeProp) {
-		if("true".equals(encodeProp.get("tsSegmentCreator"))) {
-			
+	private static void setupTsSegmentCreator(Properties prop) {
+		if("true".equals(prop.get("tsSegmentCreator"))) {
+			tsSegmentCreator = new TsSegmentCreator();
+			for(Object _key : prop.keySet()) {
+				String key = (String)_key;
+				if(!key.startsWith("tsSegmentCreator")) {
+					continue;
+				}
+				if("tsSegmentCreator.duration".equals(key)) {
+					tsSegmentCreator.setDuration(Integer.parseInt(prop.getProperty(key)));
+				}
+				if("tsSegmentCreator.tmpPath".equals(key)) {
+					tsSegmentCreator.setTmpPath(prop.getProperty(key));
+				}
+			}
 		}
 		else {
 			tsSegmentCreator = null;
 		}
 	}
-	private void setupMp3SegmentCreator(Properties encodeProp) {
-		if("true".equals(encodeProp.get("mp3SegmentCreator"))) {
-			
+	private static void setupMp3SegmentCreator(Properties prop) {
+		if("true".equals(prop.get("mp3SegmentCreator"))) {
+			mp3SegmentCreator = new Mp3SegmentCreator();
+			for(Object _key : prop.keySet()) {
+				String key = (String)_key;
+				if(!key.startsWith("mp3SegmentCreator")) {
+					continue;
+				}
+				if("mp3SegmentCreator.duration".equals(key)) {
+					mp3SegmentCreator.setDuration(Integer.parseInt(prop.getProperty(key)));
+				}
+				if("mp3SegmentCreator.tmpPath".equals(key)) {
+					mp3SegmentCreator.setTmpPath(prop.getProperty(key));
+				}
+			}
 		}
 		else {
 			mp3SegmentCreator = null;
 		}
 	}
-	private void setupJpegSegmentCreator(Properties encodeProp) {
-		if("true".equals(encodeProp.get("jpegSegmentCreator"))) {
-			
+	private static void setupJpegSegmentCreator(Properties prop) {
+		if("true".equals(prop.get("jpegSegmentCreator"))) {
+			jpegSegmentCreator = new JpegSegmentCreator();
+			for(Object _key : prop.keySet()) {
+				String key = (String)_key;
+				if(!key.startsWith("jpegSegmentCreator")) {
+					continue;
+				}
+			}
 		}
 		else {
 			jpegSegmentCreator = null;
 		}
 	}
-	private void setupTakSegmentCreator(Properties encodeProp) {
-		if("true".equals(encodeProp.get("takSegmentCreator"))) {
-			
+	private static void setupTakSegmentCreator(Properties prop) {
+		if("true".equals(prop.get("takSegmentCreator"))) {
+			takSegmentCreator = new TakSegmentCreator();
+			for(Object _key : prop.keySet()) {
+				String key = (String)_key;
+				if(!key.startsWith("takSegmentCreator")) {
+					continue;
+				}
+			}
 		}
 		else {
 			takSegmentCreator = null;
 		}
 	}
+	public static FlvInputManager getFlvInputManager() {
+		return flvInputManager;
+	}
+	public static MpegtsOutputManager getMpegtsOutputManager() {
+		return mpegtsOutputManager;
+	}
+	public static TsSegmentCreator getTsSegmentCreator() {
+		return tsSegmentCreator;
+	}
+	public static Mp3SegmentCreator getMp3SegmentCreator() {
+		return mp3SegmentCreator;
+	}
+	public static JpegSegmentCreator getJpegSegmentCreator() {
+		return jpegSegmentCreator;
+	}
+	public static TakSegmentCreator getTakSegmentCreator() {
+		return takSegmentCreator;
+	}
+	
 }

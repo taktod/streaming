@@ -1,101 +1,117 @@
 package com.ttProject.streaming;
 
-import java.io.File;
 import java.io.FileOutputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.ttProject.xuggle.out.mpegts.MpegtsOutputManager;
+import com.xuggle.xuggler.ISimpleMediaFile;
+import com.xuggle.xuggler.ICodec.ID;
 
 /**
  * 自作のjpegmp3ストリーム用のmp3のsegmentを作成します。
  * segmentを書き込むと同時にm3u8の定義ファイルもかかないとだめ、このあたりの動作はtsSegmentCreatorとほぼ同じ
+ *  この部分の動作はTsSegmentCreatorとそっくりなので(そもそもtsSegmentをつくるのと同義だし)そっちを継承した方がいい感じがした。
  * @author taktod
  */
-public class Mp3SegmentCreator {
+public class Mp3SegmentCreator extends TsSegmentCreator{
 	/** ロガー */
 	private final Logger logger = LoggerFactory.getLogger(Mp3SegmentCreator.class);
-	/** duration */
-	private static int duration;
-	/** 一時出力パス */
-	private static String tmpPath;
-	/**
-	 * durationを設定する。
-	 * @param duration
-	 */
-	public void setDuration(int duration) {
-		Mp3SegmentCreator.duration = duration;
-	}
-	/**
-	 * 一時ファイル置き場
-	 * @param tmpPath
-	 */
-	public void setTmpPath(String tmpPath) {
-		if(tmpPath.endsWith("/")) {
-			Mp3SegmentCreator.tmpPath = tmpPath;
-		}
-		else {
-			Mp3SegmentCreator.tmpPath = tmpPath + "/";
-		}
-	}
-	/** 対象名 */
-	private String tmpTarget;
-	/**
-	 * 初期化
-	 */
-	public void initialize(String name, MpegtsOutputManager outputManager) {
-		this.tmpTarget = tmpPath + name + "/";
-		if(!(new File(tmpTarget)).mkdirs()) {
-			throw new RuntimeException("mpegts用の一時ディレクトリの作成に失敗");
-		}
-		// カウンターをリセットしておく。
-		counter = 0;
-		nextStartPos = duration;
-		// outputStreamの準備をしておく。
-		try {
-			outputStream = new FileOutputStream(tmpTarget + counter + ".mp3");
-			counter ++;
-		}
-		catch (Exception e) {
-		}
-	}
-	private FileOutputStream outputStream; // 出力ファイル
-	private int counter; // segmentのカウンター
-	private long nextStartPos; // 次のセグメントの開始位置
-	// タイムスタンプは設定されているデータから、自分で計算する必要あり(mp3の生データを扱うため。)
-	// 64kb/s 2ch 44100 Hz
+	/** コーデック情報があっているか確認 */
+	private boolean isCodecOk = false;
+	/** 無音時のDummy mp3 */
 	private static final byte[] noSoundMp3 = {
 		(byte)0xff, (byte)0xfb, (byte)0x52, (byte)0x64, (byte)0xa9, (byte)0x0f, (byte)0xf0, (byte)0x00, (byte)0x00, (byte)0x69, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x08, (byte)0x00, (byte)0x00, (byte)0x0d, (byte)0x20, (byte)0x00, (byte)0x00, (byte)0x01, (byte)0x00, (byte)0x00, (byte)0x01, (byte)0xa4, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x20, (byte)0x00, (byte)0x00, (byte)0x34, (byte)0x80, (byte)0x00, (byte)0x00, (byte)0x04, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x4c, (byte)0x41, (byte)0x4d, (byte)0x45, (byte)0x33, (byte)0x2e, (byte)0x39, (byte)0x38, (byte)0x2e, (byte)0x34, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55};
+	/** 処理済みパケット数保持(パケット数から計算したら正確な進行時間が計算できるため。) */
+	private int decodedPackets = 0;
+	private static int duration;
+	private static String tmpPath;
+	@Override
+	public void setDuration(int value) {
+		duration = value;
+	}
+	@Override
+	protected int getDuration() {
+		return duration;
+	}
+	@Override
+	public void setTmpPath(String path) {
+		if(path.endsWith("/")) {
+			tmpPath = path;
+		}
+		else {
+			tmpPath = path + "/";
+		}
+	}
+	@Override
+	protected String getTmpPath() {
+		return tmpPath;
+	}
 	/**
-	 * 
+	 * 処理禁止 
+	 */
+	@Deprecated
+	public void initialize(String name) {
+		throw new RuntimeException("mp3SegmentCreatorのinitialize(String name)はつかってはいけません。");
+	}
+	/**
+	 * 初期化
+	 * @param name
+	 * @param streamInfo
+	 */
+	public void initialize(String name, ISimpleMediaFile streamInfo) {
+		// mpegtsの出力マネージャーから、mp3の種類を確認しておく。
+		// 無音mp3の関係から、64kb/s 2ch 44100Hzでないと動作できない？
+		setExt(".mp3");
+		super.initialize(name);
+		checkMp3Setting(streamInfo);
+	}
+	/**
+	 * エンコードの方式が合致するか確認する。
+	 * @param streamInfo
+	 */
+	private void checkMp3Setting(ISimpleMediaFile streamInfo) {
+		isCodecOk = streamInfo.getAudioCodec() == ID.CODEC_ID_MP3
+			&& streamInfo.getAudioBitRate() == 64000
+			&& streamInfo.getAudioChannels() == 2
+			&& streamInfo.getAudioSampleRate() == 44100;
+		if(!isCodecOk) {
+			logger.error("mp3SegmentCreatorが対応できないフォーマットが出力されています。");
+		}
+	}
+	/**
+	 * セグメントの書き込みをおこないます。
 	 * @param buf
 	 * @param size
 	 * @param position
 	 */
 	public void writeSegment(byte[] buf, int size, long position) {
-		try {
-			// とりあえず書き込んでファイルをつくる。
-			outputStream.write(buf);
+		if(!isCodecOk) {
+			return;
 		}
-		catch (Exception e) {
-		}
+		// 現在動作している部分のタイムスタンプを確認してみる。
+		logger.info("writeSegment.timestamp:" + position);
 	}
 	/**
-	 * 
+	 * 他のデータの進行状況にあわせて無音部の書き込みを実施します。
 	 * @param position
 	 */
 	public void updateSegment(long position) {
+		if(!isCodecOk) {
+			return;
+		}
+		// ここでは、現行動作している部分から、0.5秒 or 1秒程度おくれたところまで追記を実施します。(映像と音声がずれる懸念があるため。)
+		logger.info("updateSegment.timestamp:" + position);
+	}
+	/**
+	 * 無音部の追記を実際に実行します。
+	 * @param position
+	 */
+	private void fillNoSound(long position) {
 		
 	}
+	@Override
 	public void close() {
-		if(outputStream != null) {
-			try {
-				outputStream.close();
-			}
-			catch (Exception e) {
-			}
-			outputStream = null;
-		}
+		super.close();
 	}
 }

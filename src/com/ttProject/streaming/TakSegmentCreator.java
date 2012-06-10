@@ -6,7 +6,30 @@ import java.nio.ByteBuffer;
  * httpTakStreamingで利用するfth ftmデータを作成するクラス
  * @author taktod
  */
-public class TakSegmentCreator {
+public class TakSegmentCreator extends SegmentCreator{
+	private static int duration;
+	private static String tmpPath;
+	@Override
+	public void setDuration(int value) {
+		duration = value;
+	}
+	@Override
+	protected int getDuration() {
+		return duration;
+	}
+	@Override
+	public void setTmpPath(String path) {
+		if(path.endsWith("/")) {
+			tmpPath = path;
+		}
+		else {
+			tmpPath = path + "/";
+		}
+	}
+	@Override
+	protected String getTmpPath() {
+		return tmpPath;
+	}
 	/**
 	 * fthファイルを作成する。
 	 * @param buf 追加するbyteデータ
@@ -25,6 +48,7 @@ public class TakSegmentCreator {
 	/**
 	 * ストリームが止まったときの動作
 	 */
+	@Override
 	public void close() {
 	}
 }

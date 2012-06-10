@@ -501,7 +501,7 @@ public class Transcoder implements Runnable {
 				
 				if(reSamples.isComplete()) {
 					// エンコードを実施します。
-					encodeAudio(reSamples);
+					encodeAudio(targetPacket, reSamples);
 				}
 			}
 		}
@@ -532,7 +532,7 @@ public class Transcoder implements Runnable {
 	 * オーディオデータをエンコードします。
 	 * @param samples
 	 */
-	private void encodeAudio(IAudioSamples samples) {
+	private void encodeAudio(IPacket inPacket, IAudioSamples samples) {
 		int retval = -1;
 		IPacket outPacket = IPacket.make();
 		
@@ -545,9 +545,6 @@ public class Transcoder implements Runnable {
 //				logger.info("audioエンコードに失敗しましたが、このまま続けます。");
 				break;
 			}
-			else {
-//				logger.info("audioエンコード成功");
-			}
 			numSamplesConsumed += retval;
 			
 			if(outPacket.isComplete()) {
@@ -557,11 +554,9 @@ public class Transcoder implements Runnable {
 					byte[] data = new byte[b.limit()];
 					b.get(data);
 					// timestampとしては、大本の方がほしいので、修正が必要
-					mp3SegmentCreator.writeSegment(data, b.limit(), getTimestamp());
+					mp3SegmentCreator.writeSegment(data, b.limit(), inPacket.getTimeStamp());
 				}
-//				System.out.println("audioデータの書き込み1?");
 				setTimestamp(outPacket);
-//				System.out.println("audioデータの書き込み2?");
 				outputContainer.writePacket(outPacket);
 			}
 		}
@@ -588,13 +583,13 @@ public class Transcoder implements Runnable {
 			if(postDecode.isComplete()) {
 				// このタイミングで必要があるなら、jpegコンバートしておく。
 				if(jpegSegmentCreator != null) {
-					jpegSegmentCreator.makeFramePicture(postDecode, getTimestamp());
+//					jpegSegmentCreator.makeFramePicture(postDecode, getTimestamp());
 				}
 				reSample = resampleVideo(postDecode);
 				
 				if(reSample.isComplete()) {
 					// エンコードを実行します。
-					encodeVideo(reSample);
+					encodeVideo(targetPacket, reSample);
 				}
 			}
 		}
@@ -625,7 +620,7 @@ public class Transcoder implements Runnable {
 	 * 映像をエンコードします。
 	 * @param picture
 	 */
-	private void encodeVideo(IVideoPicture picture) {
+	private void encodeVideo(IPacket inPacket, IVideoPicture picture) {
 		int retval = -1;
 		IPacket outPacket = IPacket.make();
 		
@@ -643,7 +638,7 @@ public class Transcoder implements Runnable {
 			if(outPacket.isComplete()) {
 				if(mp3SegmentCreator != null) {
 					// timestampとしては、大本の方がほしいので、修正が必要
-					mp3SegmentCreator.updateSegment(getTimestamp());
+					mp3SegmentCreator.updateSegment(inPacket.getTimeStamp());
 				}
 				setTimestamp(outPacket);
 				isKey = outPacket.isKey(); // 映像側のキーフレームデータを保存しておく。ffmpegのgパラメーターでキーフレームの間隔を適当にいれてやっておく。

@@ -1,7 +1,6 @@
 package com.ttProject.streaming;
 
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.PrintWriter;
@@ -16,42 +15,50 @@ import org.slf4j.LoggerFactory;
  * 出力パスはtmpPath/名前に固定しておきたい。
  * @author taktod
  */
-public class TsSegmentCreator {
+public class TsSegmentCreator extends SegmentCreator{
 	/** ロガー */
 	private final Logger logger = LoggerFactory.getLogger(TsSegmentCreator.class);
-	/** duration指定(ミリ秒) */
+	/** 動作対象拡張子 */
+	private String ext = ".ts";
+	private FileOutputStream outputStream; // 出力ファイル
+	private int counter; // segmentのカウンター
+	private long nextStartPos; // 次のセグメントの開始位置
 	private static int duration;
-	/** 一時出力パス */
 	private static String tmpPath;
-	/**
-	 * durationを設定する。
-	 * @param duration
-	 */
-	public void setDuration(int duration) {
-		TsSegmentCreator.duration = duration;
+	@Override
+	public void setDuration(int value) {
+		duration = value;
 	}
-	/**
-	 * 一時ファイル置き場
-	 * @param tmpPath
-	 */
-	public void setTmpPath(String tmpPath) {
-		if(tmpPath.endsWith("/")) {
-			TsSegmentCreator.tmpPath = tmpPath;
+	@Override
+	protected int getDuration() {
+		return duration;
+	}
+	@Override
+	public void setTmpPath(String path) {
+		if(path.endsWith("/")) {
+			tmpPath = path;
 		}
 		else {
-			TsSegmentCreator.tmpPath = tmpPath + "/";
+			tmpPath = path + "/";
 		}
 	}
-	/** 対象名 */
-	private String tmpTarget;
+	@Override
+	protected String getTmpPath() {
+		return tmpPath;
+	}
+	/**
+	 * 拡張子の変更
+	 * @param ext
+	 */
+	protected void setExt(String ext) {
+		this.ext = ext;
+	}
 	/**
 	 * 初期化
 	 */
 	public void initialize(String name) {
-		this.tmpTarget = tmpPath + name + "/";
-		if(!(new File(tmpTarget)).mkdirs()) {
-			throw new RuntimeException("mpegts用の一時ディレクトリの作成に失敗");
-		}
+		setName(name);
+		prepareTmpPath();
 		reset();
 	}
 	/**
@@ -61,18 +68,15 @@ public class TsSegmentCreator {
 		close();
 		// カウンターをリセットしておく。
 		counter = 0;
-		nextStartPos = duration;
+		nextStartPos = getDuration();
 		// outputStreamの準備をしておく。
 		try {
-			outputStream = new FileOutputStream(tmpTarget + counter + ".ts");
+			outputStream = new FileOutputStream(getTmpTarget() + counter + ext);
 			counter ++;
 		}
 		catch (Exception e) {
 		}
 	}
-	private FileOutputStream outputStream; // 出力ファイル
-	private int counter; // segmentのカウンター
-	private long nextStartPos; // 次のセグメントの開始位置
 	/**
 	 * mpegtsのセグメントをファイルに書き込む
 	 * @param buf
@@ -91,31 +95,31 @@ public class TsSegmentCreator {
 					// タイムスタンプが次の開始位置以降の場合
 					outputStream.close();
 					counter ++;
-					outputStream = new FileOutputStream(tmpTarget + counter + ".ts");
-					PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(tmpTarget + "hoge.m3u8")));
+					outputStream = new FileOutputStream(getTmpTarget() + counter + ".ts");
+					PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(getTmpTarget() + "hoge.m3u8")));
 					pw.println("#EXTM3U");
 					pw.println("#EXT-X-ALLOW-CACHE:NO");
-					pw.println("#EXT-X-TARGETDURATION:" + (int)(duration / 1000 + 1));
+					pw.println("#EXT-X-TARGETDURATION:" + (int)(getDuration() / 1000 + 1));
 					if(counter - 2 >= 0) {
 						pw.println("#EXT-X-MEDIA-SEQUENCE:" + (counter - 2));
-						pw.println("#EXTINF:" + (int)(duration / 1000 + 1));
-						pw.println((counter - 2) + ".ts");
-						pw.println("#EXTINF:" + (int)(duration / 1000 + 1));
-						pw.println((counter - 1) + ".ts");
+						pw.println("#EXTINF:" + (int)(getDuration() / 1000 + 1));
+						pw.println((counter - 2) + ext);
+						pw.println("#EXTINF:" + (int)(getDuration() / 1000 + 1));
+						pw.println((counter - 1) + ext);
 					}
 					else if(counter - 1 >= 0) { 
 						pw.println("#EXT-X-MEDIA-SEQUENCE:" + (counter - 1));
-						pw.println("#EXTINF:" + (int)(duration / 1000 + 1));
-						pw.println((counter - 1) + ".ts");
+						pw.println("#EXTINF:" + (int)(getDuration() / 1000 + 1));
+						pw.println((counter - 1) + ext);
 					}
 					else {
 						pw.println("#EXT-X-MEDIA-SEQUENCE:0");
 					}
-					pw.println("#EXTINF:" + (int)(duration / 1000 + 1));
-					pw.println(counter + ".ts");
+					pw.println("#EXTINF:" + (int)(getDuration() / 1000 + 1));
+					pw.println(counter + ext);
 					pw.close();
 					pw = null;
-					nextStartPos = timestamp + duration;
+					nextStartPos = timestamp + getDuration();
 				}
 				outputStream.write(buf);
 			}

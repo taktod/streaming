@@ -1,43 +1,46 @@
 package com.ttProject.streaming;
 
-import com.xuggle.xuggler.IVideoPicture;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * creatorはすべて適当なディレクトリにいったんデータを書き出して、それを全体で共有する形ですすめる。
+ * TODO どのcreatorもとりあえずパスをきめて、パスの中身をクリアする。
+ * カウンターを0に戻してそこから処理始める
+ * んで、必要なメディアファイルの出力を順につづけていけば、それでOK
+ * 適当なタイミングでアップロードその他の処理を実行するイベントをキックしてやって、ファイルを対象のサーバーにあげていけば、それでいいはず。
+ * 
+ * とりあえずパスの作成と、その中身のクリア処理はつくっていっていいはず。
+ * このあたりの処理は全体で共通なので、abstructクラスをつくって、そこに記述してもいいはず。
  * @author taktod
  */
-public class JpegSegmentCreator {
-	/** 仮のパス */
-	private String tmpPath;
-	/** 縦横サイズを固定するか(falseならwidthとheightは無視) */
-	private boolean fixSize;
-	/** 横幅 */
-	private int width;
-	/** 縦幅 */
-	private int height;
-	/** １枚の画像に複数データを載せてダウンロードコストを落とすかどうか？ */
-	private boolean fourPicBoost;
-	public void setTmpPath(String tmpPath) {
-		this.tmpPath = tmpPath;
+public class JpegSegmentCreator extends SegmentCreator{
+	/** ロガー */
+	private final Logger logger = LoggerFactory.getLogger(JpegSegmentCreator.class);
+	private static int duration;
+	private static String tmpPath;
+	@Override
+	public void setDuration(int value) {
+		duration = value;
 	}
-	public void setFixSize(boolean fixSize) {
-		this.fixSize = fixSize;
+	@Override
+	protected int getDuration() {
+		return duration;
 	}
-	public void setWidth(int width) {
-		this.width = width;
+	@Override
+	public void setTmpPath(String path) {
+		if(path.endsWith("/")) {
+			tmpPath = path;
+		}
+		else {
+			tmpPath = path + "/";
+		}
 	}
-	public void setHeight(int height) {
-		this.height = height;
+	@Override
+	protected String getTmpPath() {
+		return tmpPath;
 	}
-	/**
-	 * 現在処理中の位置を保持しておく。(この位置がおかしいんだよな)
-	 * @param picture
-	 * @param position
-	 */
-	public void makeFramePicture(IVideoPicture picture, long timestamp) {
-		
-	}
+	@Override
 	public void close() {
-		
 	}
 }
