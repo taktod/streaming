@@ -59,7 +59,7 @@ public class Red5TranscodeManager {
 		Mp3SegmentCreator mp3SegmentCreator = null;
 		if(this.mp3SegmentCreator != null) {
 			mp3SegmentCreator = new Mp3SegmentCreator();
-			mp3SegmentCreator.initialize(name, mpegtsManager);//こいつはtranscoderに渡す必要あり。
+			mp3SegmentCreator.initialize(name, mpegtsManager.getStreamInfo());//こいつはtranscoderに渡す必要あり。
 		}
 		JpegSegmentCreator jpegSegmentCreator = null;
 		TakSegmentCreator takSegmentCreator = null;

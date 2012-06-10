@@ -12,6 +12,7 @@ import com.flazr.io.flv.VideoTag.FrameType;
 import com.flazr.rtmp.RtmpHeader;
 import com.flazr.rtmp.RtmpMessage;
 import com.flazr.rtmp.RtmpWriter;
+import com.ttProject.streaming.JpegSegmentCreator;
 import com.ttProject.streaming.Mp3SegmentCreator;
 import com.ttProject.streaming.TsSegmentCreator;
 import com.ttProject.xuggle.Transcoder;
@@ -33,8 +34,6 @@ public class TranscodeWriter implements RtmpWriter {
 	/** ロガー */
 	private static final Logger logger = LoggerFactory.getLogger(TranscodeWriter.class);
 
-	/** 動作ストリーム名 */
-	private String name;
 	/** 各チャンネルの時刻保持 */
 	private final int[] channelTimes = new int[RtmpHeader.MAX_CHANNEL_ID];
 	private int primaryChannel = -1;
@@ -46,21 +45,27 @@ public class TranscodeWriter implements RtmpWriter {
 	 * @param name
 	 */
 	public TranscodeWriter(String name) {
-		this.name = name;
 		// encode.propertiesから変換に関するデータを読み込んでおく。
 		MpegtsOutputManager mpegtsManager = EncodePropertyLoader.getMpegtsOutputManager();
+		// tsSegmenterの設定
 		TsSegmentCreator tsSegmentCreator = null;
 		if(EncodePropertyLoader.getTsSegmentCreator() != null) {
 			tsSegmentCreator = new TsSegmentCreator();
 			tsSegmentCreator.initialize(name);
 		}
+		// mp3Segmenterの設定
 		Mp3SegmentCreator mp3SegmentCreator = null;
 		if(EncodePropertyLoader.getMp3SegmentCreator() != null) {
 			mp3SegmentCreator = new Mp3SegmentCreator();
 			mp3SegmentCreator.initialize(name, mpegtsManager.getStreamInfo());
 		}
-		transcoder = new Transcoder(new FlvInputManager(), mpegtsManager, name, mp3SegmentCreator, null);
-		
+		// jpegSegmenterの設定
+		JpegSegmentCreator jpegSegmentCreator = null;
+		if(EncodePropertyLoader.getJpegSegmentCreator() != null) {
+			jpegSegmentCreator = new JpegSegmentCreator();
+			jpegSegmentCreator.initialize(name);
+		}
+		transcoder = new Transcoder(new FlvInputManager(), mpegtsManager, name, mp3SegmentCreator, jpegSegmentCreator);
 		
 		FlvHandlerFactory flvFactory = FlvHandlerFactory.getFactory();
 		inputDataQueue = new FlvDataQueue();

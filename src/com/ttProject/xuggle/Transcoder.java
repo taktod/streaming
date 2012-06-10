@@ -583,7 +583,7 @@ public class Transcoder implements Runnable {
 			if(postDecode.isComplete()) {
 				// このタイミングで必要があるなら、jpegコンバートしておく。
 				if(jpegSegmentCreator != null) {
-//					jpegSegmentCreator.makeFramePicture(postDecode, getTimestamp());
+					jpegSegmentCreator.makeFramePicture(postDecode, targetPacket.getTimeStamp());
 				}
 				reSample = resampleVideo(postDecode);
 				

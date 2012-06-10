@@ -20,19 +20,33 @@ public class TsSegmentCreator extends SegmentCreator{
 	private final Logger logger = LoggerFactory.getLogger(TsSegmentCreator.class);
 	/** 動作対象拡張子 */
 	private String ext = ".ts";
-	private FileOutputStream outputStream; // 出力ファイル
-	private int counter; // segmentのカウンター
-	private long nextStartPos; // 次のセグメントの開始位置
+	/** 出力ファイルストリーム */
+	private FileOutputStream outputStream;
+	/** segmentのカウンター */
+	private int counter;
+	/** 次のセグメントの開始位置(タイムスタンプ) */
+	private long nextStartPos;
+	/** 動作duration */
 	private static int duration;
+	/** 一時データ保持場所 */
 	private static String tmpPath;
+	/**
+	 * duration設定
+	 */
 	@Override
 	public void setDuration(int value) {
 		duration = value;
 	}
+	/**
+	 * duration取得
+	 */
 	@Override
 	protected int getDuration() {
 		return duration;
 	}
+	/**
+	 * 一時ファイル置き場設定
+	 */
 	@Override
 	public void setTmpPath(String path) {
 		if(path.endsWith("/")) {
@@ -42,6 +56,9 @@ public class TsSegmentCreator extends SegmentCreator{
 			tmpPath = path + "/";
 		}
 	}
+	/**
+	 * 一時ファイル置き場取得
+	 */
 	@Override
 	protected String getTmpPath() {
 		return tmpPath;
@@ -74,6 +91,7 @@ public class TsSegmentCreator extends SegmentCreator{
 			outputStream = new FileOutputStream(getTmpTarget() + counter + ext);
 		}
 		catch (Exception e) {
+			logger.error("出力ストリームを開くのに失敗しました。", e);
 		}
 	}
 	/**
@@ -83,16 +101,14 @@ public class TsSegmentCreator extends SegmentCreator{
 	 * @param timestamp
 	 */
 	public void writeSegment(byte[] buf, int size, long timestamp, boolean isKey) {
-		// ここでは特に考えもなく、bufデータが送られてきてしまうので、それを追記しまくっていく。よってclose処理が必要。
 		if(outputStream != null) {
 			try {
+				// タイムスタンプの確認と、バッファがキーであるか確認。
 				if(timestamp > nextStartPos && isKey) {
-/*					logger.info("timestamp {}, nextPos {}", new Object[]{
-							timestamp,
-							nextStartPos
-					});*/
-					// タイムスタンプが次の開始位置以降の場合
+					// 以前のファイル出力を停止する。
 					outputStream.close();
+					// 出力用のm3u8ファイルの準備
+					// TODO hoge.m3u8固定になっているので、名前を変更しておきたい。
 					PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(getTmpTarget() + "hoge.m3u8")));
 					pw.println("#EXTM3U");
 					pw.println("#EXT-X-ALLOW-CACHE:NO");
@@ -127,14 +143,17 @@ public class TsSegmentCreator extends SegmentCreator{
 					pw.println(ext);
 					pw.close();
 					pw = null;
+					// 次の切断場所を定義
 					nextStartPos = timestamp + getDuration();
+					// カウンターのインクリメント
 					counter ++;
+					// データ出力先のストリームを開いておく。
 					outputStream = new FileOutputStream(getTmpTarget() + counter + ext);
 				}
+				// データの追記
 				outputStream.write(buf);
 			}
 			catch (Exception e) {
-				// もしかして、書き込みミスが発生している？
 				logger.error("書き込みに失敗しました。", e);
 			}
 		}

@@ -22,16 +22,27 @@ public class Mp3SegmentCreator extends TsSegmentCreator{
 		(byte)0xff, (byte)0xfb, (byte)0x52, (byte)0x64, (byte)0xa9, (byte)0x0f, (byte)0xf0, (byte)0x00, (byte)0x00, (byte)0x69, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x08, (byte)0x00, (byte)0x00, (byte)0x0d, (byte)0x20, (byte)0x00, (byte)0x00, (byte)0x01, (byte)0x00, (byte)0x00, (byte)0x01, (byte)0xa4, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x20, (byte)0x00, (byte)0x00, (byte)0x34, (byte)0x80, (byte)0x00, (byte)0x00, (byte)0x04, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x4c, (byte)0x41, (byte)0x4d, (byte)0x45, (byte)0x33, (byte)0x2e, (byte)0x39, (byte)0x38, (byte)0x2e, (byte)0x34, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55, (byte)0x55};
 	/** 処理済みパケット数保持(パケット数から計算したら正確な進行時間が計算できるため。) */
 	private int decodedPackets = 0;
+	/** 1セグメントの長さ定義 */
 	private static int duration;
+	/** 一時保存場所定義 */
 	private static String tmpPath;
+	/**
+	 * duration設定
+	 */
 	@Override
 	public void setDuration(int value) {
 		duration = value;
 	}
+	/**
+	 * duration参照
+	 */
 	@Override
 	protected int getDuration() {
 		return duration;
 	}
+	/**
+	 * 一時置き場設定
+	 */
 	@Override
 	public void setTmpPath(String path) {
 		if(path.endsWith("/")) {
@@ -41,12 +52,15 @@ public class Mp3SegmentCreator extends TsSegmentCreator{
 			tmpPath = path + "/";
 		}
 	}
+	/**
+	 * 一時置き場参照
+	 */
 	@Override
 	protected String getTmpPath() {
 		return tmpPath;
 	}
 	/**
-	 * 処理禁止 
+	 * tsSegmentで定義されている名前のみの初期化は禁止
 	 */
 	@Deprecated
 	public void initialize(String name) {
@@ -60,8 +74,11 @@ public class Mp3SegmentCreator extends TsSegmentCreator{
 	public void initialize(String name, ISimpleMediaFile streamInfo) {
 		// mpegtsの出力マネージャーから、mp3の種類を確認しておく。
 		// 無音mp3の関係から、64kb/s 2ch 44100Hzでないと動作できない？
+		// 処理拡張しをmp3に変更
 		setExt(".mp3");
+		// tsSegmentCreatorの初期化実施
 		super.initialize(name);
+		// mp3として動作可能なデータか確認
 		checkMp3Setting(streamInfo);
 	}
 	/**
@@ -69,10 +86,10 @@ public class Mp3SegmentCreator extends TsSegmentCreator{
 	 * @param streamInfo
 	 */
 	private void checkMp3Setting(ISimpleMediaFile streamInfo) {
-		isCodecOk = streamInfo.getAudioCodec() == ID.CODEC_ID_MP3
-			&& streamInfo.getAudioBitRate() == 64000
-			&& streamInfo.getAudioChannels() == 2
-			&& streamInfo.getAudioSampleRate() == 44100;
+		isCodecOk = streamInfo.getAudioCodec() == ID.CODEC_ID_MP3 // mp3である。
+			&& streamInfo.getAudioBitRate() == 64000 // 64k
+			&& streamInfo.getAudioChannels() == 2 // 2channel
+			&& streamInfo.getAudioSampleRate() == 44100; // 44.1 kHz
 		if(!isCodecOk) {
 			logger.error("mp3SegmentCreatorが対応できないフォーマットが出力されています。");
 		}
@@ -87,8 +104,6 @@ public class Mp3SegmentCreator extends TsSegmentCreator{
 		if(!isCodecOk) {
 			return;
 		}
-		// 現在動作している部分のタイムスタンプを確認してみる。
-//		logger.info("writeSegment.timestamp:" + timestamp);
 		// 現在までに消化したpacket数から正確なタイムスタンプをだして、設定されているタイムスタンプ以下になる場合は、前の部分に無音mp3を追記してやる。
 		fillNoSound(timestamp);
 		int position = (int)(decodedPackets * 11520 / 441);
@@ -104,7 +119,6 @@ public class Mp3SegmentCreator extends TsSegmentCreator{
 			return;
 		}
 		// ここでは、現行動作している部分から、0.5秒 or 1秒程度おくれたところまで追記を実施します。(映像と音声がずれる懸念があるため。)
-//		logger.info("updateSegment.timestamp:" + timestamp);
 		fillNoSound(timestamp - 1000); // １秒前まで仮にうめておくものとします。
 	}
 	/**
@@ -116,7 +130,7 @@ public class Mp3SegmentCreator extends TsSegmentCreator{
 		// (decodedPackets * 11520 / 441) // パケット量から換算する経過時間
 		while(true) { // 0.027秒以上余っている場合は、無音パケットが入る余地あり
 			int position = (int)(decodedPackets * 11520 / 441);
-//			if(timestamp - position <= 27) {
+//			if(timestamp - position <= 27) { // パケットの長さは正しくは0.026...になるのですが、たまに送れることがあるようなので余裕をみて0.03にしておきます。
 			if(timestamp - position <= 30) {
 				break;
 			}

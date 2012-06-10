@@ -160,6 +160,12 @@ public class EncodePropertyLoader {
 				if(!key.startsWith("jpegSegmentCreator")) {
 					continue;
 				}
+				if("jpegSegmentCreator.duration".equals(key)) {
+					jpegSegmentCreator.setDuration(Integer.parseInt(prop.getProperty(key)));
+				}
+				if("jpegSegmentCreator.tmpPath".equals(key)) {
+					jpegSegmentCreator.setTmpPath(prop.getProperty(key));
+				}
 			}
 		}
 		else {
