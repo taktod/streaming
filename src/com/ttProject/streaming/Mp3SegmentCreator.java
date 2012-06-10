@@ -1,7 +1,5 @@
 package com.ttProject.streaming;
 
-import java.io.FileOutputStream;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,30 +83,47 @@ public class Mp3SegmentCreator extends TsSegmentCreator{
 	 * @param size
 	 * @param position
 	 */
-	public void writeSegment(byte[] buf, int size, long position) {
+	public void writeSegment(byte[] buf, int size, long timestamp) {
 		if(!isCodecOk) {
 			return;
 		}
 		// 現在動作している部分のタイムスタンプを確認してみる。
-		logger.info("writeSegment.timestamp:" + position);
+//		logger.info("writeSegment.timestamp:" + timestamp);
+		// 現在までに消化したpacket数から正確なタイムスタンプをだして、設定されているタイムスタンプ以下になる場合は、前の部分に無音mp3を追記してやる。
+		fillNoSound(timestamp);
+		int position = (int)(decodedPackets * 11520 / 441);
+		writeSegment(buf, size, position, true);
+		decodedPackets ++;
 	}
 	/**
 	 * 他のデータの進行状況にあわせて無音部の書き込みを実施します。
 	 * @param position
 	 */
-	public void updateSegment(long position) {
+	public void updateSegment(long timestamp) {
 		if(!isCodecOk) {
 			return;
 		}
 		// ここでは、現行動作している部分から、0.5秒 or 1秒程度おくれたところまで追記を実施します。(映像と音声がずれる懸念があるため。)
-		logger.info("updateSegment.timestamp:" + position);
+//		logger.info("updateSegment.timestamp:" + timestamp);
+		fillNoSound(timestamp - 1000); // １秒前まで仮にうめておくものとします。
 	}
 	/**
 	 * 無音部の追記を実際に実行します。
 	 * @param position
 	 */
-	private void fillNoSound(long position) {
-		
+	private void fillNoSound(long timestamp) {
+		// 自分のいる位置が、１パケット以上分の差がない場合は、無音パケットでうめなければ、いけない。
+		// (decodedPackets * 11520 / 441) // パケット量から換算する経過時間
+		while(true) { // 0.027秒以上余っている場合は、無音パケットが入る余地あり
+			int position = (int)(decodedPackets * 11520 / 441);
+//			if(timestamp - position <= 27) {
+			if(timestamp - position <= 30) {
+				break;
+			}
+			logger.info("無音部を足して調整しました。");
+			writeSegment(noSoundMp3, noSoundMp3.length, position, true); // mp3はすべてキーパケット扱いにできる。
+			decodedPackets ++;
+		}
 	}
 	@Override
 	public void close() {

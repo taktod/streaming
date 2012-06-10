@@ -72,7 +72,6 @@ public class TsSegmentCreator extends SegmentCreator{
 		// outputStreamの準備をしておく。
 		try {
 			outputStream = new FileOutputStream(getTmpTarget() + counter + ext);
-			counter ++;
 		}
 		catch (Exception e) {
 		}
@@ -88,44 +87,55 @@ public class TsSegmentCreator extends SegmentCreator{
 		if(outputStream != null) {
 			try {
 				if(timestamp > nextStartPos && isKey) {
-					logger.info("timestamp {}, nextPos {}", new Object[]{
+/*					logger.info("timestamp {}, nextPos {}", new Object[]{
 							timestamp,
 							nextStartPos
-					});
+					});*/
 					// タイムスタンプが次の開始位置以降の場合
 					outputStream.close();
-					counter ++;
-					outputStream = new FileOutputStream(getTmpTarget() + counter + ".ts");
 					PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(getTmpTarget() + "hoge.m3u8")));
 					pw.println("#EXTM3U");
 					pw.println("#EXT-X-ALLOW-CACHE:NO");
-					pw.println("#EXT-X-TARGETDURATION:" + (int)(getDuration() / 1000 + 1));
+					pw.print("#EXT-X-TARGETDURATION:");
+					pw.println((int)(getDuration() / 1000));
 					if(counter - 2 >= 0) {
-						pw.println("#EXT-X-MEDIA-SEQUENCE:" + (counter - 2));
-						pw.println("#EXTINF:" + (int)(getDuration() / 1000 + 1));
-						pw.println((counter - 2) + ext);
-						pw.println("#EXTINF:" + (int)(getDuration() / 1000 + 1));
-						pw.println((counter - 1) + ext);
+						pw.print("#EXT-X-MEDIA-SEQUENCE:");
+						pw.println(counter - 2);
+						pw.print("#EXTINF:");
+						pw.println((int)(getDuration() / 1000));
+						pw.print(counter - 2);
+						pw.println(ext);
+						pw.print("#EXTINF:");
+						pw.println((int)(getDuration() / 1000));
+						pw.print(counter - 1);
+						pw.println(ext);
 					}
 					else if(counter - 1 >= 0) { 
-						pw.println("#EXT-X-MEDIA-SEQUENCE:" + (counter - 1));
-						pw.println("#EXTINF:" + (int)(getDuration() / 1000 + 1));
-						pw.println((counter - 1) + ext);
+						pw.print("#EXT-X-MEDIA-SEQUENCE:");
+						pw.println(counter - 1);
+						pw.print("#EXTINF:");
+						pw.println((int)(getDuration() / 1000));
+						pw.print(counter - 1);
+						pw.println(ext);
 					}
 					else {
 						pw.println("#EXT-X-MEDIA-SEQUENCE:0");
 					}
-					pw.println("#EXTINF:" + (int)(getDuration() / 1000 + 1));
-					pw.println(counter + ext);
+					pw.print("#EXTINF:");
+					pw.println((int)(getDuration() / 1000));
+					pw.print(counter);
+					pw.println(ext);
 					pw.close();
 					pw = null;
 					nextStartPos = timestamp + getDuration();
+					counter ++;
+					outputStream = new FileOutputStream(getTmpTarget() + counter + ext);
 				}
 				outputStream.write(buf);
 			}
 			catch (Exception e) {
 				// もしかして、書き込みミスが発生している？
-				e.printStackTrace();
+				logger.error("書き込みに失敗しました。", e);
 			}
 		}
 	}
@@ -138,6 +148,7 @@ public class TsSegmentCreator extends SegmentCreator{
 				outputStream.close();
 			}
 			catch (Exception e) {
+				logger.error("出力ストリームを停止したところエラーが発生しました。", e);
 			}
 			outputStream = null;
 		}
