@@ -26,6 +26,9 @@ import com.xuggle.xuggler.video.IConverter;
  * [3]
  * という縦長な画像をつくるイメージ
  * 細分化については適当に処理してやるとりあえず10fpsで逝ってみたい。
+ * 動作的にもダウンロードサイズ的にも問題はでないっぽいですが、このファイルの準備ができたという情報をなんとかして送り届けてやりたい。
+ * でないと描画中のファイルにあたった場合に絵がくずれる。
+ * やっぱり細かい部分はwebSocketをつかってやりくりする必要があるのだろうか？
  * 
  * duration分たまったら次のjpegに移動みたいな感じ
  * @author taktod
@@ -79,13 +82,12 @@ public class JpegSegmentCreator extends SegmentCreator{
 	/** 現在扱っている画像のサイズ */
 	private int width = -1,height = -1;
 	/** とりいそぎ160x1200にして、そこに160x120の画像10個保持する形にして、送りだす。というやり方をとってみる。 */
+	// 仮に3x3の形にしてみましたが、サイズ的にあまりかわりませんでした。
 	private BufferedImage outputImage = new BufferedImage(160, 1200, BufferedImage.TYPE_3BYTE_BGR);
 	/** コンバート処理用オブジェクト */
 	private IConverter converter = null;
 	/** 画像カウンター(こいつはファイルのデータ) */
 	private int counter = 0;
-	private byte[] settled = {0x00, 0x00, 0x00, 0x00, 0x00,
-							  0x00, 0x00, 0x00, 0x00, 0x00};
 	/**
 	 * 初期化しておく。
 	 * @param name
@@ -114,22 +116,11 @@ public class JpegSegmentCreator extends SegmentCreator{
 				ImageIO.write(outputImage, "jpeg", new File(getTmpTarget() + counter + ".jpg"));
 				counter = (int)timestamp / 1000;
 				outputImage = new BufferedImage(160, 1200, BufferedImage.TYPE_3BYTE_BGR);
-				settled[0] = 0x00;
-				settled[1] = 0x00;
-				settled[2] = 0x00;
-				settled[3] = 0x00;
-				settled[4] = 0x00;
-				settled[5] = 0x00;
-				settled[6] = 0x00;
-				settled[7] = 0x00;
-				settled[8] = 0x00;
-				settled[9] = 0x00;
 			}
 			javaImage = converter.toImage(picture);
 			Graphics2D g2d = outputImage.createGraphics();
 			int pos = (int)(timestamp / 100) % 10;
-			settled[pos] = 1;
-			g2d.drawImage(javaImage, 0, 120*pos, 160, 120, null);
+			g2d.drawImage(javaImage, 0, 120 * pos, 160, 120, null);
 			// 前の画像のカウンターが現在の画像カウンターと比べて・・・を調べる
 			// とりいそぎ画像を160x120に変更し、４つあるエントリーのうち正しいところにおいておく。
 			// 1 2

@@ -1,5 +1,10 @@
 package com.ttProject.streaming;
 
+import java.io.BufferedWriter;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.PrintWriter;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,9 +15,15 @@ import com.xuggle.xuggler.ICodec.ID;
  * 自作のjpegmp3ストリーム用のmp3のsegmentを作成します。
  * segmentを書き込むと同時にm3u8の定義ファイルもかかないとだめ、このあたりの動作はtsSegmentCreatorとほぼ同じ
  *  この部分の動作はTsSegmentCreatorとそっくりなので(そもそもtsSegmentをつくるのと同義だし)そっちを継承した方がいい感じがした。
+ * TODO やってみたところ、どうやらaudioタグのcurrentTimeは再生してからの経過時間しかとれないみたいです。
+ * 中途からはじめた、セグメントの場合、再生開始したところからの経過時間しかとれないので、有用ではありませんでした。
+ * いまのところ、始めから全データがはいっているデータとして、設置しておかないと動作できないみたいです。
+ * ダウンロードしなければいけないファイルサイズがおおきくなるので、オーバーヘッドが大きくなってしまいそうですが、まぁ仕方ない。
+ * playしたまま放置という状況になると、再開したときに位置情報がリセットされずに、動作することがあるみたい。(追記扱い？)
+ * どうしたものか・・・
  * @author taktod
  */
-public class Mp3SegmentCreator extends TsSegmentCreator{
+public class Mp3SegmentCreator extends SegmentCreator{
 	/** ロガー */
 	private final Logger logger = LoggerFactory.getLogger(Mp3SegmentCreator.class);
 	/** コーデック情報があっているか確認 */
@@ -26,6 +37,10 @@ public class Mp3SegmentCreator extends TsSegmentCreator{
 	private static int duration;
 	/** 一時保存場所定義 */
 	private static String tmpPath;
+	
+	private FileOutputStream outputStream;
+	private int counter;
+	private long nextStartPos;
 	/**
 	 * duration設定
 	 */
@@ -60,13 +75,6 @@ public class Mp3SegmentCreator extends TsSegmentCreator{
 		return tmpPath;
 	}
 	/**
-	 * tsSegmentで定義されている名前のみの初期化は禁止
-	 */
-	@Deprecated
-	public void initialize(String name) {
-		throw new RuntimeException("mp3SegmentCreatorのinitialize(String name)はつかってはいけません。");
-	}
-	/**
 	 * 初期化
 	 * @param name
 	 * @param streamInfo
@@ -75,11 +83,91 @@ public class Mp3SegmentCreator extends TsSegmentCreator{
 		// mpegtsの出力マネージャーから、mp3の種類を確認しておく。
 		// 無音mp3の関係から、64kb/s 2ch 44100Hzでないと動作できない？
 		// 処理拡張しをmp3に変更
-		setExt(".mp3");
 		// tsSegmentCreatorの初期化実施
-		super.initialize(name);
+		setName(name);
+		prepareTmpPath();
+		reset();
+//		super.initialize(name);
 		// mp3として動作可能なデータか確認
 		checkMp3Setting(streamInfo);
+	}
+	public void reset() {
+		close();
+		counter = 0;
+		nextStartPos = getDuration();
+		try {
+			PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(getTmpTarget() + "hoge.m3u8", true)));
+			pw.println("#EXTM3U");
+			pw.println("#EXT-X-ALLOW-CACHE:NO"); // キャッシュするかどうかの指定
+			pw.print("#EXT-X-TARGETDURATION:"); // 何個前のデータから読み出すかの指定
+			pw.println((int)(getDuration() / 1000)); // この値は間違ってる。最低でも2以上いれないとだめっぽい。
+			pw.println("#EXT-X-MEDIA-SEQUENCE:0"); // このファイルの先頭がどこであるかの指定
+			pw.flush();
+			pw.close();
+			outputStream = new FileOutputStream(getTmpTarget() + counter + ".mp3");
+		}
+		catch (Exception e) {
+		}
+	}
+	private void _writeSegment(byte[] buf, int size, long timestamp) {
+		if(outputStream != null) {
+			try {
+				// タイムスタンプの確認と、バッファがキーであるか確認。
+				if(timestamp > nextStartPos) {
+					// 以前のファイル出力を停止する。
+					outputStream.close();
+					// 出力用のm3u8ファイルの準備
+					// TODO hoge.m3u8固定になっているので、名前を変更しておきたい。
+					PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(getTmpTarget() + "hoge.m3u8", true)));
+/*					pw.println("#EXTM3U");
+					pw.println("#EXT-X-ALLOW-CACHE:NO");
+					pw.print("#EXT-X-TARGETDURATION:");
+					pw.println((int)(getDuration() / 1000));
+					if(counter - 2 >= 0) {
+						pw.print("#EXT-X-MEDIA-SEQUENCE:");
+						pw.println(counter - 2);
+						// この部分に、いままでのdurationすべてを含むデータをいれてやる必要がある。
+						pw.print("#EXTINF:");
+//						pw.println((int)(getDuration() / 1000)); // このdurationを正しい形にしておく。
+						pw.println((counter - 1) * (getDuration() / 1000)); // このdurationを正しい形にしておく。
+						pw.print(counter - 2);
+						pw.println(".mp3");
+//						pw.println("unknown.mp3");
+						pw.print("#EXTINF:");
+						pw.println((int)(getDuration() / 1000));
+						pw.print(counter - 1);
+						pw.println(".mp3");
+					}
+					else if(counter - 1 >= 0) { 
+						pw.print("#EXT-X-MEDIA-SEQUENCE:");
+						pw.println(counter - 1);
+						pw.print("#EXTINF:");
+						pw.println((int)(getDuration() / 1000));
+						pw.print(counter - 1);
+						pw.println(".mp3");
+					}
+					else {
+						pw.println("#EXT-X-MEDIA-SEQUENCE:0");
+					}*/
+					pw.print("#EXTINF:");
+					pw.println((int)(getDuration() / 1000));
+					pw.print(counter);
+					pw.println(".mp3");
+					pw.close();
+					pw = null;
+					// 次の切断場所を定義
+					nextStartPos = timestamp + getDuration();
+					// カウンターのインクリメント
+					counter ++;
+					// データ出力先のストリームを開いておく。
+					outputStream = new FileOutputStream(getTmpTarget() + counter + ".mp3");
+				}
+				// データの追記
+				outputStream.write(buf);
+			}
+			catch (Exception e) {
+			}
+		}
 	}
 	/**
 	 * エンコードの方式が合致するか確認する。
@@ -107,7 +195,7 @@ public class Mp3SegmentCreator extends TsSegmentCreator{
 		// 現在までに消化したpacket数から正確なタイムスタンプをだして、設定されているタイムスタンプ以下になる場合は、前の部分に無音mp3を追記してやる。
 		fillNoSound(timestamp);
 		int position = (int)(decodedPackets * 11520 / 441);
-		writeSegment(buf, size, position, true);
+		_writeSegment(buf, size, position);
 		decodedPackets ++;
 	}
 	/**
@@ -135,12 +223,19 @@ public class Mp3SegmentCreator extends TsSegmentCreator{
 				break;
 			}
 			logger.info("無音部を足して調整しました。");
-			writeSegment(noSoundMp3, noSoundMp3.length, position, true); // mp3はすべてキーパケット扱いにできる。
+			_writeSegment(noSoundMp3, noSoundMp3.length, position); // mp3はすべてキーパケット扱いにできる。
 			decodedPackets ++;
 		}
 	}
 	@Override
 	public void close() {
-		super.close();
+//		super.close();
+		if(outputStream != null) {
+			try {
+				outputStream.close();
+			}
+			catch (Exception e) {
+			}
+		}
 	}
 }
