@@ -575,7 +575,8 @@ public class Transcoder implements Runnable {
 			retval = inputVideoCoder.decodeVideo(inPicture, targetPacket, offset);
 			if(retval <= 0) {
 				logger.error(IError.make(retval).getDescription());
-				throw new RuntimeException("Videoパケットをデコードすることができませんでした。");
+				// 冒頭でミスすることがあるみたい。なので、ミスしたパケットはスルーすることにしました。
+				return;
 			}
 			offset += retval;
 			
