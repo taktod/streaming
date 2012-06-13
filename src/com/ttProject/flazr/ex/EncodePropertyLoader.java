@@ -1,4 +1,4 @@
-package com.ttProject.flazr;
+package com.ttProject.flazr.ex;
 
 import java.io.FileInputStream;
 import java.util.HashMap;
@@ -179,6 +179,12 @@ public class EncodePropertyLoader {
 				String key = (String)_key;
 				if(!key.startsWith("takSegmentCreator")) {
 					continue;
+				}
+				if("takSegmentCreator.duration".equals(key)) {
+					takSegmentCreator.setDuration(Integer.parseInt(prop.getProperty(key)));
+				}
+				if("takSegmentCreator.tmpPath".equals(key)) {
+					takSegmentCreator.setTmpPath(prop.getProperty(key));
 				}
 			}
 		}
