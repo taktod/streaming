@@ -12,8 +12,10 @@ import com.flazr.io.flv.VideoTag.FrameType;
 import com.flazr.rtmp.RtmpHeader;
 import com.flazr.rtmp.RtmpMessage;
 import com.flazr.rtmp.RtmpWriter;
+import com.ttProject.flazr.ex.EncodePropertyLoader;
 import com.ttProject.streaming.JpegSegmentCreator;
 import com.ttProject.streaming.Mp3SegmentCreator;
+import com.ttProject.streaming.TakSegmentCreator;
 import com.ttProject.streaming.TsSegmentCreator;
 import com.ttProject.xuggle.Transcoder;
 import com.ttProject.xuggle.in.flv.FlvDataQueue;
@@ -37,33 +39,53 @@ public class TranscodeWriter implements RtmpWriter {
 	/** 各チャンネルの時刻保持 */
 	private final int[] channelTimes = new int[RtmpHeader.MAX_CHANNEL_ID];
 	private int primaryChannel = -1;
-	
-	private Transcoder transcoder = null;
+
+	/** 変換動作用のオブジェクト */
+	private MpegtsOutputManager mpegtsManager = null;
+	private Transcoder   transcoder     = null;
 	private FlvDataQueue inputDataQueue = null;
+	private TakSegmentCreator  takSegmentCreator  = null;
+	private TsSegmentCreator   tsSegmentCreator   = null;
+	private Mp3SegmentCreator  mp3SegmentCreator  = null;
+	private JpegSegmentCreator jpegSegmentCreator = null;
+	
+	/** 動作名 */
+	private final String name;
+	
 	/**
 	 * コンストラクタ
 	 * @param name
 	 */
 	public TranscodeWriter(String name) {
+		this.name = name;
 		// encode.propertiesから変換に関するデータを読み込んでおく。
-		MpegtsOutputManager mpegtsManager = EncodePropertyLoader.getMpegtsOutputManager();
+		mpegtsManager = EncodePropertyLoader.getMpegtsOutputManager();
+	}
+	/**
+	 * 放送が開始したとき
+	 */
+	public void onPublish() {
+		// 前の動作がのこっている場合は、いったん停止する。
+		close();
 		// tsSegmenterの設定
-		TsSegmentCreator tsSegmentCreator = null;
 		if(EncodePropertyLoader.getTsSegmentCreator() != null) {
 			tsSegmentCreator = new TsSegmentCreator();
 			tsSegmentCreator.initialize(name);
 		}
 		// mp3Segmenterの設定
-		Mp3SegmentCreator mp3SegmentCreator = null;
 		if(EncodePropertyLoader.getMp3SegmentCreator() != null) {
 			mp3SegmentCreator = new Mp3SegmentCreator();
 			mp3SegmentCreator.initialize(name, mpegtsManager.getStreamInfo());
 		}
 		// jpegSegmenterの設定
-		JpegSegmentCreator jpegSegmentCreator = null;
 		if(EncodePropertyLoader.getJpegSegmentCreator() != null) {
 			jpegSegmentCreator = new JpegSegmentCreator();
 			jpegSegmentCreator.initialize(name);
+		}
+		// takSegmenterの設定
+		if(EncodePropertyLoader.getTakSegmentCreator() != null) {
+			takSegmentCreator = new TakSegmentCreator();
+			takSegmentCreator.initialize(name);
 		}
 		transcoder = new Transcoder(new FlvInputManager(), mpegtsManager, name, mp3SegmentCreator, jpegSegmentCreator);
 		
@@ -77,10 +99,17 @@ public class TranscodeWriter implements RtmpWriter {
 		mpegtsFactory.registerHandler(name, mpegtsHandler);
 
 		initialize(); // 初期化して動作開始
-		
+
+		// これは動きっぱなしにはなってません。transcoder.closeできちんととまっている。
 		Thread transcodeThread = new Thread(transcoder);
 		transcodeThread.setDaemon(true);
 		transcodeThread.start();
+	}
+	/**
+	 * 放送が停止したとき
+	 */
+	public void onUnpublish() {
+		close();
 	}
 	/**
 	 * 初期化
@@ -90,6 +119,8 @@ public class TranscodeWriter implements RtmpWriter {
 			// headerデータを作成すでにAudio + Videoになっているので、そのままつかわせてもらう。
 			// このデータをFlvDataQueueに渡せばOK
 			ByteBuffer buffer = FlvAtom.flvHeader().toByteBuffer(); // しかも都合がいいことにnio.ByteBufferになってる。
+			// ヘッダ情報を作成した瞬間にデータを送っておく。
+//			takSegmentCreator.writeHeaderPacket(buffer.duplicate(), video, audio);
 			inputDataQueue.putHeaderData(buffer);
 		}
 		catch (Exception e) {
@@ -130,11 +161,12 @@ public class TranscodeWriter implements RtmpWriter {
 	 * @param flvAtom
 	 */
 	private void write(final FlvAtom flvAtom) {
+		// firstパケットは保持しておく必要がある。
 		if(flvAtom.getHeader().isVideo()) {
 			VideoTag videoTag = new VideoTag(flvAtom.encode().getByte(0));
 			if(videoTag.getFrameType() == FrameType.DISPOSABLE_INTER) {
 				// TODO red5のときにxuggleに渡さなかったdisposable interframe. flazrならいけるか？
-//				logger.info("disposable writerを発見。");
+				// flazr + fmsで余裕でした。
 			}
 		}
  		try {
@@ -156,6 +188,10 @@ public class TranscodeWriter implements RtmpWriter {
 		if(inputDataQueue != null) {
 			inputDataQueue.close();
 			inputDataQueue = null;
+		}
+		if(takSegmentCreator != null) {
+			takSegmentCreator.close();
+			takSegmentCreator = null;
 		}
 	}
 }
