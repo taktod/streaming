@@ -184,7 +184,7 @@ public class StreamListener implements IStreamListener {
 		// タグデータをbyteBufferにいれこんで渡します。
 		ByteBuffer tagBuffer = makeTagByteBuffer(tag);
 		if(takSegmentCreator != null) {
-			takSegmentCreator.writeTagData(tagBuffer);
+			takSegmentCreator.writeTagData(tagBuffer, tag.getTimestamp());
 		}
 		if(flvDataQueue != null) {
 			if(rtmpEvent instanceof VideoData) {
