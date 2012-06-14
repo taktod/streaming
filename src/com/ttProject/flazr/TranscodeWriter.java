@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 
 import com.flazr.io.flv.FlvAtom;
 import com.flazr.io.flv.VideoTag;
-import com.flazr.io.flv.VideoTag.FrameType;
 import com.flazr.rtmp.RtmpHeader;
 import com.flazr.rtmp.RtmpMessage;
 import com.flazr.rtmp.RtmpWriter;
@@ -52,6 +51,10 @@ public class TranscodeWriter implements RtmpWriter {
 	/** 動作名 */
 	private final String name;
 	
+	/** takSegmenterのために、audioとvideoの第一パケットは保持しておかなければいけない・・・のかな？本当に */
+	private ByteBuffer firstAudioPacket = null;
+	private ByteBuffer firstVideoPacket = null;
+	
 	/**
 	 * コンストラクタ
 	 * @param name
@@ -60,6 +63,7 @@ public class TranscodeWriter implements RtmpWriter {
 		this.name = name;
 		// encode.propertiesから変換に関するデータを読み込んでおく。
 		mpegtsManager = EncodePropertyLoader.getMpegtsOutputManager();
+		onPublish();
 	}
 	/**
 	 * 放送が開始したとき
@@ -83,7 +87,9 @@ public class TranscodeWriter implements RtmpWriter {
 			jpegSegmentCreator.initialize(name);
 		}
 		// takSegmenterの設定
+		logger.info("ここにきた。");
 		if(EncodePropertyLoader.getTakSegmentCreator() != null) {
+			logger.info("nullではない");
 			takSegmentCreator = new TakSegmentCreator();
 			takSegmentCreator.initialize(name);
 		}
@@ -117,11 +123,12 @@ public class TranscodeWriter implements RtmpWriter {
 	public void initialize() {
 		try {
 			// headerデータを作成すでにAudio + Videoになっているので、そのままつかわせてもらう。
-			// このデータをFlvDataQueueに渡せばOK
-			ByteBuffer buffer = FlvAtom.flvHeader().toByteBuffer(); // しかも都合がいいことにnio.ByteBufferになってる。
 			// ヘッダ情報を作成した瞬間にデータを送っておく。
-//			takSegmentCreator.writeHeaderPacket(buffer.duplicate(), video, audio);
-			inputDataQueue.putHeaderData(buffer);
+			if(takSegmentCreator != null) {
+				takSegmentCreator.writeHeaderPacket(FlvAtom.flvHeader().toByteBuffer(), null, null);
+			}
+			// コンバート用のqueueにもいれておく。
+			inputDataQueue.putHeaderData(FlvAtom.flvHeader().toByteBuffer());
 		}
 		catch (Exception e) {
 			throw new RuntimeException(e);
@@ -162,17 +169,45 @@ public class TranscodeWriter implements RtmpWriter {
 	 */
 	private void write(final FlvAtom flvAtom) {
 		// firstパケットは保持しておく必要がある。
-		if(flvAtom.getHeader().isVideo()) {
-			VideoTag videoTag = new VideoTag(flvAtom.encode().getByte(0));
-			if(videoTag.getFrameType() == FrameType.DISPOSABLE_INTER) {
-				// TODO red5のときにxuggleに渡さなかったdisposable interframe. flazrならいけるか？
-				// flazr + fmsで余裕でした。
-			}
-		}
- 		try {
+		RtmpHeader header = flvAtom.getHeader();
+		try {
 			// このデータをFlvDataQueueに渡せばOK
-			ByteBuffer buffer = flvAtom.write().toByteBuffer();
-			inputDataQueue.putTagData(buffer);
+			ByteBuffer buf = flvAtom.write().toByteBuffer();
+			if(header.isVideo() && firstVideoPacket == null) {
+				firstVideoPacket = buf.duplicate();
+				firstVideoPacket.position(4);
+				firstVideoPacket.putInt(0);
+				firstVideoPacket.rewind();
+				logger.info("packet: {}", firstVideoPacket);
+				if(takSegmentCreator != null) {
+					takSegmentCreator.writeHeaderPacket(
+							FlvAtom.flvHeader().toByteBuffer(),
+							firstVideoPacket,
+							firstAudioPacket);
+				}
+			}
+			else if(header.isAudio() && firstAudioPacket == null) {
+				firstAudioPacket = buf.duplicate();
+				firstAudioPacket.position(4);
+				firstAudioPacket.putInt(0);
+				firstAudioPacket.rewind();
+				if(takSegmentCreator != null) {
+					takSegmentCreator.writeHeaderPacket(
+							FlvAtom.flvHeader().toByteBuffer(),
+							firstVideoPacket,
+							firstAudioPacket);
+				}
+			}
+			inputDataQueue.putTagData(buf);
+			if(takSegmentCreator != null) {
+				if(header.isVideo()) {
+					VideoTag videoTag = new VideoTag(flvAtom.encode().getByte(0));
+					takSegmentCreator.writeTagData(buf, header.getTime(), videoTag.isKeyFrame());
+				}
+				else {
+					takSegmentCreator.writeTagData(buf, header.getTime(), false);
+				}
+			}
 		}
 		catch (Exception e) {
 			throw new RuntimeException(e);

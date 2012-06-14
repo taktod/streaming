@@ -7,7 +7,6 @@
       <Pattern>%d{HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</Pattern>
     </layout>
   </appender>
-
   <root>
     <level value="INFO" />
     <appender-ref ref="STDOUT" />
