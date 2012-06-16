@@ -11,7 +11,7 @@ import com.xuggle.xuggler.io.URLProtocolManager;
  * mpegtsのストリームデータを受け取るための動作
  * xuggleでカスタム出力を利用する場合のメモ
  * 1:IURLProtocolHandlerFactoryを実装したクラスを作ります。
- * 2:実装したクラスをURLProtocolManagerに塘路気宇しておきます。
+ * 2:実装したクラスをURLProtocolManagerに登録しておきます。
  * 3:指定したURLの形式になっているコンテナが要求された場合、このクラスのgetHandlerによって処理IURLProtocolHandlerが決定されて処理されます。
  * 
  * @author taktod
