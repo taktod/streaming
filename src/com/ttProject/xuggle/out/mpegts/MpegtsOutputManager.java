@@ -11,13 +11,20 @@ import com.xuggle.xuggler.SimpleMediaFile;
 
 /**
  * mpegtsDataoutputを管理するマネージャー
+ * このクラスはbeanやpropertiesでの定義情報を保持するだけのクラスです。
+ * 
+ * TODO 現状では、staticな変数にsimplemediafileをいれてしまっているので、このクラスが呼び出されたタイミングでxuggleが必須になってしまいます。
+ * このままではxuggleのない環境では、利用できないので、そのあたり修正しておきたいところ。
  * @author taktod
  */
 public class MpegtsOutputManager {
+	/** 出力用のmpegtsのストリーム情報の保持 */
 	private static final ISimpleMediaFile streamInfo = new SimpleMediaFile();
+	/** ffmpegに渡すvideo用のプロパティの詳細設定 */
 	private static final Map<String, String> videoProperties = new HashMap<String, String>();
+	/** ffmpegに渡すvideo用のフラグデータの詳細情報 */
 	private static final Map<IStreamCoder.Flags, Boolean> videoFlags = new HashMap<IStreamCoder.Flags, Boolean>();
-	private MpegtsHandler mpegtsHandler;
+//	private MpegtsHandler mpegtsHandler;
 	// 出力側はいろんなパラメーターを受け取る必要があり、これをトランスコーダーで利用する。
 	/**
 	 * 定義されたstreamInfoを取得します
@@ -72,9 +79,9 @@ public class MpegtsOutputManager {
 		catch (Exception e) {
 		}
 	}
-	public MpegtsHandler getHandler() {
-		return mpegtsHandler;
-	}
+//	public MpegtsHandler getHandler() {
+//		return mpegtsHandler;
+//	}
 	public void setVideoProperty(Map<String, String> properties) {
 		videoProperties.putAll(properties);
 	}

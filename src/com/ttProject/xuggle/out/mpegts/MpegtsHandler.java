@@ -1,27 +1,29 @@
 package com.ttProject.xuggle.out.mpegts;
 
-//import org.slf4j.Logger;
-//import org.slf4j.LoggerFactory;
-
-//import java.io.FileOutputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.ttProject.streaming.TsSegmentCreator;
 import com.ttProject.xuggle.Transcoder;
 import com.xuggle.xuggler.io.IURLProtocolHandler;
 
 /**
- * transcoderのオブジェクトを保持することで、timestampをwriteするときに参照したい。
- * @author todatakahiko
- *
+ * mpegtsのデータの出力を扱うクラス
+ * Xuggleでカスタム出力を利用する場合のメモ
+ * 0:IURLProtocolHandlerFactoryから必要に応じて呼び出されるようにしておく。
+ * 1:それぞれのoverrideメソッドがffmpegから呼び出されるのでそれに応じた動作をすればOK
+ * このクラスの場合はopen close writeあたりが利用されます。
+ * 出力されるデータはmpegtsのフォーマットにきちんと変換されたものになります。
+ * 
+ * @author taktod
  */
 public class MpegtsHandler implements IURLProtocolHandler {
 	/** ロガー */
-//	private final Logger logger = LoggerFactory.getLogger(MpegtsHandler.class);
+	private final Logger logger = LoggerFactory.getLogger(MpegtsHandler.class);
 	/** tsファイルのセグメントを作成オブジェクト */
 	private TsSegmentCreator creator;
 	/** transcoderオブジェクト */
 	private Transcoder transcoder;
-//	private FileOutputStream fos = null;
 	/**
 	 * コンストラクタ
 	 * @param creator
@@ -36,15 +38,6 @@ public class MpegtsHandler implements IURLProtocolHandler {
 	 */
 	@Override
 	public int close() {
-/*		System.out.println("closeがよばれました。");
-		if(fos != null) {
-			try {
-				fos.close();
-			}
-			catch (Exception e) {
-			}
-			fos = null;
-		}*/
 		return 0;
 	}
 	/**
@@ -65,14 +58,6 @@ public class MpegtsHandler implements IURLProtocolHandler {
 	 */
 	@Override
 	public int open(String url, int flags) {
-/*		try {
-			System.out.println("try to open tssample.ts");
-			fos = new FileOutputStream("/home/poepoemix/www/stest/tssample.ts");
-			System.out.println("fosのオープンおわり。");
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-		}*/
 		return 0;
 	}
 	/**
@@ -84,7 +69,8 @@ public class MpegtsHandler implements IURLProtocolHandler {
 	 */
 	@Override
 	public int read(byte[] buf, int size) {
-		return 0;
+		logger.error("出力のみ考慮されたクラスなので、読み込みデータが要求されないでほしいです。");
+		return -1;
 	}
 	/**
 	 * ffmpegからシークの要求があった場合の処理
@@ -105,14 +91,6 @@ public class MpegtsHandler implements IURLProtocolHandler {
 	 */
 	@Override
 	public int write(byte[] buf, int size) {
-/*		if(fos != null) {
-			try {
-				fos.write(buf);
-			}
-			catch (Exception e) {
-				e.printStackTrace();
-			}
-		}*/
 		if(creator != null) {
 			creator.writeSegment(buf, size, transcoder.getTimestamp(), transcoder.isKey());
 		}
