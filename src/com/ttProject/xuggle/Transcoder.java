@@ -14,6 +14,7 @@ import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IContainerFormat;
+import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.IPacket;
 import com.xuggle.xuggler.IRational;
 import com.xuggle.xuggler.ISimpleMediaFile;
@@ -197,7 +198,8 @@ public class Transcoder implements Runnable {
 			// パケットの入力を取得する。
 			retval = inputContainer.readNextPacket(packet);
 			if(retval < 0) {
-				if(retval == -35) {
+				logger.error("パケット取得エラー: {}, {}", IError.make(retval), retval); // このエラー番号は環境に依存する？
+				if("Resource temporarily unavailable".equals(IError.make(retval).getDescription())) {
 					// リソースが一時的にない場合 つづけていれば動作可能になるので、この場合だけ例外的にスキップする。
 					continue;
 				}
