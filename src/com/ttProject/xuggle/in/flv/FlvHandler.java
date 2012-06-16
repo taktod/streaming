@@ -9,6 +9,12 @@ import com.xuggle.xuggler.io.IURLProtocolHandler;
 
 /**
  * 実際にffmpegからデータの要求等を実行されるクラス
+ * Xuggleでカスタム入力を利用する場合のメモ
+ * 0:IURLProtocolHandlerFactoryから必要に応じて呼び出されるようにしておく。
+ * 1:それぞれのoverrideメソッドがffmpegから呼びdさsレルのでそれに応じた動作をすればよし。
+ * このクラスでは、open close readあたりが利用されます。
+ * 入力データとして渡すデータは指定ファイルフォーマットに乗っ取っていないとffmpegがエラーになります。
+ * 
  * @author taktod
  */
 public class FlvHandler implements IURLProtocolHandler {
@@ -51,7 +57,6 @@ public class FlvHandler implements IURLProtocolHandler {
 	 */
 	@Override
 	public int open(String url, int flags) {
-		logger.info("openのトライ:" + url);
 		return 0;
 	}
 	/**
@@ -63,7 +68,6 @@ public class FlvHandler implements IURLProtocolHandler {
 	 */
 	@Override
 	public int read(byte[] buf, int size) {
-		logger.info("読み込みのトライ:" + size);
 		// size分までしか読み込みする必要がないので、byteBufferとして、size分メモリーを準備しておく。
 		ByteBuffer readBuffer = ByteBuffer.allocate(size);
 		while(readBuffer.hasRemaining()) {
@@ -79,11 +83,8 @@ public class FlvHandler implements IURLProtocolHandler {
 			}
 			if(packet == null) {
 				// 読み出せるパケットがなくなったら脱出する。
-				System.out.println("読み出せるパケットがなくなった。");
 				break;
 			}
-//			System.out.println("packet pos" + packet.position());
-//			System.out.println("packet" + packet.remaining());
 			if(readBuffer.remaining() < packet.remaining()) {
 				byte[] readBytes = new byte[readBuffer.remaining()];
 				packet.get(readBytes);
@@ -96,13 +97,11 @@ public class FlvHandler implements IURLProtocolHandler {
 				// まだ読み込み可能な場合
 				byte[] readBytes = new byte[packet.remaining()];
 				packet.get(readBytes);
-//				logger.info(HexDump.toHexString(readBytes));
 				readBuffer.put(readBytes);
 			}
 		}
 		readBuffer.flip();
 		int length = readBuffer.limit();
-		logger.info("実際の読み込みデータ量:" + length);
 		readBuffer.get(buf, 0, length);
 		return length;
 	}
@@ -126,6 +125,7 @@ public class FlvHandler implements IURLProtocolHandler {
 	@Override
 	public int write(byte[] buf, int size) {
 		// いまのところ書き込みは考慮しませんので、OutputContainerにflvHandlerFactoryのProtocolを割り当ててはいけない。
-		return 0;
+		logger.info("入力のみ考慮されたクラスなので、出力データの要求されないでほしいところ。");
+		return -1;
 	}
 }

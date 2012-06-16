@@ -9,7 +9,11 @@ import com.xuggle.xuggler.io.URLProtocolManager;
 
 /**
  * FLVのストリームデータをffmpegに流し込むための動作
- * ProtocolHandlerを応答するFactoryクラス(基本シングルトン)
+ * xuggleでカスタム入力を利用する場合のメモ
+ * 1:IURLProtocolHandlerFactoryを実装したクラスを作ります。
+ * 2:実装したクラスをURLProtocolManagerに登録しておきます。
+ * 3:指定したURLの形式になっているコンテナが要求された場合、このクラスのgetHandlerによって処理IURLProtocolHandlerが決定されて処理されます。
+ * 
  * @author taktod
  */
 public class FlvHandlerFactory implements IURLProtocolHandlerFactory{
@@ -31,7 +35,7 @@ public class FlvHandlerFactory implements IURLProtocolHandlerFactory{
 	 * コンストラクタ
 	 */
 	private FlvHandlerFactory() {
-		// URLProtocolManagerに登録することで、今後(redfile:xxxx)のURL向けの処理はこのfactoryが返すHandlerを利用して動作するようになります。
+		// URLProtocolManagerに登録することで、今後(flvStreamInput:xxxx)のURL向けの処理はこのfactoryが返すHandlerを利用して動作するようになります。
 		URLProtocolManager manager = URLProtocolManager.getManager();
 		manager.registerFactory(DEFAULT_PROTOCOL, this);
 	}

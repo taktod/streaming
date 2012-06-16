@@ -1,40 +1,32 @@
 package com.ttProject.xuggle.in.flv;
 
-import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 import java.util.concurrent.LinkedBlockingQueue;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * xuggleのIURLProtocolHandlerはffmpegが処理のトリガーになってしまっているので、次のような動作にする。
  * １：データをqueueにためておく。
  * ２：ffmpegから要求があれば、queueから必要数のデータを取り出して応答する。
+ * なお、ffmpegからの要求の応答では、データサイズ0を返してしまうと動作がとまってしまうことがあるので
+ * threadをblockしないpollではなく、blockするtakeを利用しています。
+ * この部分もうちょっとなんとかしないといけないかも。
+ * 
  * @author toktod
  */
 public class FlvDataQueue {
+	/** ロガー */
+	private final Logger logger = LoggerFactory.getLogger(FlvDataQueue.class);
 	/** データを保持しておく。queue */
 	LinkedBlockingQueue<ByteBuffer> dataQueue = new LinkedBlockingQueue<ByteBuffer>();
-	private FileOutputStream fos;
-	public FlvDataQueue() {
-		try {
-			fos = new FileOutputStream("/home/poepoemix/www/stest/sample.flv");
-		}
-		catch (Exception e) {
-		}
-	}
 	/**
 	 * headerデータを設定します。
 	 * @param header
 	 */
 	public void putHeaderData(ByteBuffer header) {
 		dataQueue.add(header.duplicate());
-		try {
-			ByteBuffer buf = header.duplicate();
-			byte[] data = new byte[buf.limit()];
-			buf.get(data);
-			fos.write(data);
-		}
-		catch (Exception e) {
-		}
 	}
 	/**
 	 * tagデータを更新します。
@@ -42,14 +34,6 @@ public class FlvDataQueue {
 	 */
 	public void putTagData(ByteBuffer tag) {
 		dataQueue.add(tag.duplicate());
-		try {
-			ByteBuffer buf = tag.duplicate();
-			byte[] data = new byte[buf.limit()];
-			buf.get(data);
-			fos.write(data);
-		}
-		catch (Exception e) {
-		}
 	}
 	/**
 	 * 動作が停止するときの動作
@@ -58,14 +42,6 @@ public class FlvDataQueue {
 		if(dataQueue != null) {
 			dataQueue.clear(); // dataQueueの待ちがある場合にこまる。
 			dataQueue = null;
-		}
-		if(fos != null) {
-			try {
-				fos.close();
-			}
-			catch (Exception e) {
-			}
-			fos = null;
 		}
 	}
 	/**
@@ -81,6 +57,7 @@ public class FlvDataQueue {
 			return result;
 		}
 		catch (Exception e) {
+			logger.error("dataQueueの取得で例外が発生しました。", e);
 			// 例外がでた場合は、nullを応答しておく。
 			return null;
 		}
