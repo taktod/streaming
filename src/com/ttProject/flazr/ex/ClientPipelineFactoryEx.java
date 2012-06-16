@@ -35,5 +35,4 @@ public class ClientPipelineFactoryEx implements ChannelPipelineFactory {
 		pipeline.addLast("handler", new ClientHandlerEx(options));
 		return pipeline;
 	}
-
 }

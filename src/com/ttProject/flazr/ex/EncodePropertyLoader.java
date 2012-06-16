@@ -14,14 +14,18 @@ import com.ttProject.xuggle.out.mpegts.MpegtsOutputManager;
 
 /**
  * encode.propertiesのデータを読み込むローダー
+ * red5みたいにbeanでコントロールできないので(beanloaderをつくるのが面倒なので)propertiesから読み込むことにした。
+ * 入出力Managerをなんとかしないとxuggle抜きで動作できない気がする。(ライブラリエラーになるかな。)
+ * @author taktod
  */
 public class EncodePropertyLoader {
-	private static FlvInputManager     flvInputManager     = null;
+	// 入力データの代表インスタンス
+	private static FlvInputManager     flvInputManager     = null; // flv入力は意味をなさないので(xuggleが自動判別する)一応あるけど意味なし。
 	private static MpegtsOutputManager mpegtsOutputManager = null;
-	private static TsSegmentCreator   tsSegmentCreator   = null;
-	private static Mp3SegmentCreator  mp3SegmentCreator  = null;
-	private static JpegSegmentCreator jpegSegmentCreator = null;
-	private static TakSegmentCreator  takSegmentCreator  = null;
+	private static TsSegmentCreator    tsSegmentCreator    = null;
+	private static Mp3SegmentCreator   mp3SegmentCreator   = null;
+	private static JpegSegmentCreator  jpegSegmentCreator  = null;
+	private static TakSegmentCreator   takSegmentCreator   = null;
 	/**
 	 * 読み込みを実行する。
 	 */
@@ -112,6 +116,10 @@ public class EncodePropertyLoader {
 			mpegtsOutputManager = null;
 		}
 	}
+	/**
+	 * tsSegmentの作成定義を作成する。
+	 * @param prop
+	 */
 	private static void setupTsSegmentCreator(Properties prop) {
 		if("true".equals(prop.get("tsSegmentCreator"))) {
 			tsSegmentCreator = new TsSegmentCreator();
@@ -132,6 +140,10 @@ public class EncodePropertyLoader {
 			tsSegmentCreator = null;
 		}
 	}
+	/**
+	 * mp3Segmentの作成定義を作成する。
+	 * @param prop
+	 */
 	private static void setupMp3SegmentCreator(Properties prop) {
 		if("true".equals(prop.get("mp3SegmentCreator"))) {
 			mp3SegmentCreator = new Mp3SegmentCreator();
@@ -152,6 +164,10 @@ public class EncodePropertyLoader {
 			mp3SegmentCreator = null;
 		}
 	}
+	/**
+	 * jpegSegmentの作成定義を作成する。
+	 * @param prop
+	 */
 	private static void setupJpegSegmentCreator(Properties prop) {
 		if("true".equals(prop.get("jpegSegmentCreator"))) {
 			jpegSegmentCreator = new JpegSegmentCreator();
@@ -172,6 +188,10 @@ public class EncodePropertyLoader {
 			jpegSegmentCreator = null;
 		}
 	}
+	/**
+	 * takSegmentの作成定義を作成する。
+	 * @param prop
+	 */
 	private static void setupTakSegmentCreator(Properties prop) {
 		if("true".equals(prop.get("takSegmentCreator"))) {
 			takSegmentCreator = new TakSegmentCreator();
@@ -192,23 +212,46 @@ public class EncodePropertyLoader {
 			takSegmentCreator = null;
 		}
 	}
+	/**
+	 * flv入力の定義を参照する。
+	 * @return
+	 */
 	public static FlvInputManager getFlvInputManager() {
 		return flvInputManager;
 	}
+	/**
+	 * mpegts出力の定義を参照する。
+	 * @return
+	 */
 	public static MpegtsOutputManager getMpegtsOutputManager() {
 		return mpegtsOutputManager;
 	}
+	/**
+	 * tsSegmentの作成定義を参照する。
+	 * @return
+	 */
 	public static TsSegmentCreator getTsSegmentCreator() {
 		return tsSegmentCreator;
 	}
+	/**
+	 * mp3Segmentの作成定義を参照する。
+	 * @return
+	 */
 	public static Mp3SegmentCreator getMp3SegmentCreator() {
 		return mp3SegmentCreator;
 	}
+	/**
+	 * jpegSegmentの作成定義を参照する。
+	 * @return
+	 */
 	public static JpegSegmentCreator getJpegSegmentCreator() {
 		return jpegSegmentCreator;
 	}
+	/**
+	 * takSegmentの作成定義を参照する。
+	 * @return
+	 */
 	public static TakSegmentCreator getTakSegmentCreator() {
 		return takSegmentCreator;
 	}
-	
 }

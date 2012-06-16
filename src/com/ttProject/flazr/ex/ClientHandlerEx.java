@@ -22,7 +22,10 @@ import com.ttProject.flazr.TranscodeWriter;
  */
 @ChannelPipelineCoverage("one")
 public class ClientHandlerEx extends ClientHandler {
+	/** 動作ロガー */
+	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(ClientHandlerEx.class);
+	/** オプションデータ保持 */
 	private final ClientOptions options;
 	/**
 	 * コンストラクタ
@@ -47,22 +50,23 @@ public class ClientHandlerEx extends ClientHandler {
 				final Map<String, String> temp = (Map)command.getArg(0);
 				final String code = (String)temp.get("code");
 				final TranscodeWriter transcodeWriter = (TranscodeWriter)options.getWriterToSave();
-				// "NetStream.Play.Start"
+				// この処理命令の動作はred5 wowza fmsで動作が若干違うので注意が必要。
 				if("NetStream.Play.UnpublishNotify".equals(code)) {
-					// 放送がとまったとき
+//					logger.info("放送停止");
 					// すでに動作しているsegmentCreatorは必要なくなるので停止する。
-					logger.info("放送停止");
 					// 変換を停止する。
+					transcodeWriter.onUnpublish();
 				}
 				else if("NetStream.Play.Start".equals(code)) {
-					logger.info("視聴開始");
+//					logger.info("視聴開始");
 					// エンコード変換の準備をしておく。
+					transcodeWriter.onPublish();
 				}
 				else if("NetStream.Play.PublishNotify".equals(code)) {
-					// 放送が開始されたとき
+//					logger.info("放送開始");
 					// あたらしい放送開始にあわせて、segmentCreatorを動作するように手配する
-					logger.info("放送開始");
 					// エンコード変換の準備をしておく。
+					transcodeWriter.onPublish();
 				}
 			}
 		}
