@@ -17,6 +17,10 @@ import com.flazr.rtmp.RtmpWriter;
 /**
  * 標準出力にデータを書き出すWriter
  * 標準出力に書き出すことで、ffmpegにパイプ接続できることを期待します。
+ * →ffmpegにパイプすることは可能で、これを使えば放送が中断したときの動作をうまくやったりできます。
+ * 今回のプロジェクトのおまけみたいなものです
+ * なお、ログ出力を標準出力しておくとデータが混じってしまい、flvファイルにならないので、ファイル出力かエラー出力に変更しないとだめです。
+ * 
  * @author taktod
  */
 public class StdoutWriter implements RtmpWriter {
@@ -35,7 +39,6 @@ public class StdoutWriter implements RtmpWriter {
 			byte[] data = new byte[buffer.limit()];
 			buffer.get(data);
 			System.out.write(data);
-//			System.out.println(HexDump.toHexString(data));
 		}
 		catch (Exception e) {
 			logger.error("", e);
@@ -73,7 +76,6 @@ public class StdoutWriter implements RtmpWriter {
 	 */
 	private void write(final FlvAtom flvAtom) {
 		if(flvAtom.getHeader().isVideo()) {
-//			VideoTag videoTag = new VideoTag(flvAtom.encode().getByte(0));
  			// queueの中身をすべて外にだして、現在のタイムスタンプ以前のものなら、書き込みを実施する。
 			ConcurrentLinkedQueue<FlvAtom> queue = new ConcurrentLinkedQueue<FlvAtom>();
  			while(dataQueue.size() > 0) {

@@ -6,6 +6,7 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.flazr.io.flv.AudioTag;
 import com.flazr.io.flv.FlvAtom;
 import com.flazr.io.flv.VideoTag;
 import com.flazr.rtmp.RtmpHeader;
@@ -87,29 +88,31 @@ public class TranscodeWriter implements RtmpWriter {
 			jpegSegmentCreator.initialize(name);
 		}
 		// takSegmenterの設定
-		logger.info("ここにきた。");
 		if(EncodePropertyLoader.getTakSegmentCreator() != null) {
-			logger.info("nullではない");
 			takSegmentCreator = new TakSegmentCreator();
 			takSegmentCreator.initialize(name);
 		}
-		transcoder = new Transcoder(new FlvInputManager(), mpegtsManager, name, mp3SegmentCreator, jpegSegmentCreator);
-		
-		FlvHandlerFactory flvFactory = FlvHandlerFactory.getFactory();
-		inputDataQueue = new FlvDataQueue();
-		FlvHandler flvHandler = new FlvHandler(inputDataQueue);
-		flvFactory.registerHandler(name, flvHandler);
-		
-		MpegtsHandlerFactory mpegtsFactory = MpegtsHandlerFactory.getFactory();
-		MpegtsHandler mpegtsHandler = new MpegtsHandler(tsSegmentCreator, transcoder);
-		mpegtsFactory.registerHandler(name, mpegtsHandler);
+		if(mpegtsManager != null) { // flvInputManagerも別途encode.propertiesで定義されているならここで判定候補にした方がいいと思う。
+			transcoder = new Transcoder(new FlvInputManager(), mpegtsManager, name, mp3SegmentCreator, jpegSegmentCreator);
+			
+			FlvHandlerFactory flvFactory = FlvHandlerFactory.getFactory();
+			inputDataQueue = new FlvDataQueue();
+			FlvHandler flvHandler = new FlvHandler(inputDataQueue);
+			flvFactory.registerHandler(name, flvHandler);
+			
+			MpegtsHandlerFactory mpegtsFactory = MpegtsHandlerFactory.getFactory();
+			MpegtsHandler mpegtsHandler = new MpegtsHandler(tsSegmentCreator, transcoder);
+			mpegtsFactory.registerHandler(name, mpegtsHandler);
+		}
 
 		initialize(); // 初期化して動作開始
 
-		// これは動きっぱなしにはなってません。transcoder.closeできちんととまっている。
-		Thread transcodeThread = new Thread(transcoder);
-		transcodeThread.setDaemon(true);
-		transcodeThread.start();
+		if(mpegtsManager != null) {
+			// これは動きっぱなしにはなってません。transcoder.closeできちんととまっている。
+			Thread transcodeThread = new Thread(transcoder);
+			transcodeThread.setDaemon(true);
+			transcodeThread.start();
+		}
 	}
 	/**
 	 * 放送が停止したとき
@@ -122,13 +125,17 @@ public class TranscodeWriter implements RtmpWriter {
 	 */
 	public void initialize() {
 		try {
+			firstAudioPacket = null;
+			firstVideoPacket = null;
 			// headerデータを作成すでにAudio + Videoになっているので、そのままつかわせてもらう。
 			// ヘッダ情報を作成した瞬間にデータを送っておく。
 			if(takSegmentCreator != null) {
 				takSegmentCreator.writeHeaderPacket(FlvAtom.flvHeader().toByteBuffer(), null, null);
 			}
 			// コンバート用のqueueにもいれておく。
-			inputDataQueue.putHeaderData(FlvAtom.flvHeader().toByteBuffer());
+			if(inputDataQueue != null) {
+				inputDataQueue.putHeaderData(FlvAtom.flvHeader().toByteBuffer());
+			}
 		}
 		catch (Exception e) {
 			throw new RuntimeException(e);
@@ -154,7 +161,6 @@ public class TranscodeWriter implements RtmpWriter {
 			channelTimes[channelId] = header.getTime();
             if(primaryChannel == -1 && (header.isAudio() || header.isVideo())) {
             	// 先に見つけたデータをprimaryデータとして扱う。？
-                logger.info("first media packet for channel: {}", header);
                 primaryChannel = channelId;
             }
             if(header.getSize() <= 2) { // サイズが小さすぎる場合は不正な命令として無視する？
@@ -178,12 +184,15 @@ public class TranscodeWriter implements RtmpWriter {
 				firstVideoPacket.position(4);
 				firstVideoPacket.putInt(0);
 				firstVideoPacket.rewind();
-				logger.info("packet: {}", firstVideoPacket);
 				if(takSegmentCreator != null) {
-					takSegmentCreator.writeHeaderPacket(
-							FlvAtom.flvHeader().toByteBuffer(),
-							firstVideoPacket,
-							firstAudioPacket);
+					VideoTag videoTag = new VideoTag(flvAtom.encode().getByte(0));
+					if(videoTag.getCodecType() == VideoTag.CodecType.AVC) {
+						// h.264の場合のみfirstパケットをとっておく。
+						takSegmentCreator.writeHeaderPacket(
+								FlvAtom.flvHeader().toByteBuffer(),
+								firstVideoPacket,
+								firstAudioPacket);
+					}
 				}
 			}
 			else if(header.isAudio() && firstAudioPacket == null) {
@@ -192,10 +201,13 @@ public class TranscodeWriter implements RtmpWriter {
 				firstAudioPacket.putInt(0);
 				firstAudioPacket.rewind();
 				if(takSegmentCreator != null) {
-					takSegmentCreator.writeHeaderPacket(
-							FlvAtom.flvHeader().toByteBuffer(),
-							firstVideoPacket,
-							firstAudioPacket);
+					AudioTag audioTag = new AudioTag(flvAtom.encode().getByte(0));
+					if(audioTag.getCodecType() == AudioTag.CodecType.AAC) {
+						takSegmentCreator.writeHeaderPacket(
+								FlvAtom.flvHeader().toByteBuffer(),
+								firstVideoPacket,
+								firstAudioPacket);
+					}
 				}
 			}
 			inputDataQueue.putTagData(buf);
@@ -210,9 +222,13 @@ public class TranscodeWriter implements RtmpWriter {
 			}
 		}
 		catch (Exception e) {
+			logger.error("データ書き込み中に例外が発生しました。", e);
 			throw new RuntimeException(e);
 		}
 	}
+	/**
+	 * 閉じる
+	 */
 	@Override
 	public void close() {
 		// ストリームの停止と、transcoder等もろもろの停止を実行する必要あり。

@@ -5,6 +5,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.ttProject.streaming.JpegSegmentCreator;
 import com.ttProject.streaming.Mp3SegmentCreator;
 import com.ttProject.streaming.TakSegmentCreator;
@@ -19,6 +22,8 @@ import com.ttProject.xuggle.out.mpegts.MpegtsOutputManager;
  * @author taktod
  */
 public class EncodePropertyLoader {
+	/** ロガー */
+	private static final Logger logger = LoggerFactory.getLogger(EncodePropertyLoader.class);
 	// 入力データの代表インスタンス
 	private static FlvInputManager     flvInputManager     = null; // flv入力は意味をなさないので(xuggleが自動判別する)一応あるけど意味なし。
 	private static MpegtsOutputManager mpegtsOutputManager = null;
@@ -42,6 +47,15 @@ public class EncodePropertyLoader {
 			setupJpegSegmentCreator(encodeProp);
 		}
 		catch (Exception e) {
+		}
+		finally {
+			// 入力データがどのように認識されたか書き込んでおいた方がいいと思う。
+//			logger.info("flvInputManager: {}", flvInputManager);
+			logger.info("mpegtsOutputManager: {}", mpegtsOutputManager);
+			logger.info("tsSegmentCreator: {}",   tsSegmentCreator);
+			logger.info("mp3SegmentCreator: {}",  mp3SegmentCreator);
+			logger.info("jpegSegmentCreator: {}", jpegSegmentCreator);
+			logger.info("takSegmentCreator: {}",  takSegmentCreator);
 		}
 	}
 	/**

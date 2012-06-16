@@ -259,7 +259,6 @@ public class Transcoder implements Runnable {
 	private void openOutputContainer() {
 		String url;
 		int retval = -1;
-		logger.info("書き込みコンテナを開きます。");
 		url = outputProtocol + ":" + taskName;
 		ISimpleMediaFile outputInfo = new SimpleMediaFile();
 		outputInfo.setURL(url);
