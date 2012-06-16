@@ -13,14 +13,10 @@ import com.xuggle.xuggler.ICodec.ID;
 
 /**
  * 自作のjpegmp3ストリーム用のmp3のsegmentを作成します。
- * segmentを書き込むと同時にm3u8の定義ファイルもかかないとだめ、このあたりの動作はtsSegmentCreatorとほぼ同じ
- *  この部分の動作はTsSegmentCreatorとそっくりなので(そもそもtsSegmentをつくるのと同義だし)そっちを継承した方がいい感じがした。
- * TODO やってみたところ、どうやらaudioタグのcurrentTimeは再生してからの経過時間しかとれないみたいです。
- * 中途からはじめた、セグメントの場合、再生開始したところからの経過時間しかとれないので、有用ではありませんでした。
- * いまのところ、始めから全データがはいっているデータとして、設置しておかないと動作できないみたいです。
- * ダウンロードしなければいけないファイルサイズがおおきくなるので、オーバーヘッドが大きくなってしまいそうですが、まぁ仕方ない。
- * playしたまま放置という状況になると、再開したときに位置情報がリセットされずに、動作することがあるみたい。(追記扱い？)
- * どうしたものか・・・
+ * 中途のみの抜き出し方式でつくるとaudio.currentTimeのjavascriptでとれる値が再生してからの時刻になります。
+ * 全部のパケットデータを書き出して実行した場合は、中途のデータはdurationで定義したものがはいっているとして仮定された値になるみたいです。
+ * 
+ * なのでいまのところこのmp3のsegmentの出力では、頭からのすべてのデータを書き出す方向でつくってあります。
  * @author taktod
  */
 public class Mp3SegmentCreator extends SegmentCreator{
@@ -38,8 +34,10 @@ public class Mp3SegmentCreator extends SegmentCreator{
 	/** 一時保存場所定義 */
 	private static String tmpPath;
 	
-	private FileOutputStream outputStream;
+	private FileOutputStream mp3File;
+	/** カウンター */
 	private int counter;
+	/** 次のセグメントの開始位置 */
 	private long nextStartPos;
 	/**
 	 * duration設定
@@ -87,16 +85,18 @@ public class Mp3SegmentCreator extends SegmentCreator{
 		setName(name);
 		prepareTmpPath();
 		reset();
-//		super.initialize(name);
 		// mp3として動作可能なデータか確認
 		checkMp3Setting(streamInfo);
 	}
-	public void reset() {
+	/**
+	 * 内部データをリセットします。
+	 */
+	private void reset() {
 		close();
 		counter = 0;
 		nextStartPos = getDuration();
 		try {
-			PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(getTmpTarget() + "hoge.m3u8", true)));
+			PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(getTmpTarget() + "index.m3u8", true)));
 			pw.println("#EXTM3U");
 			pw.println("#EXT-X-ALLOW-CACHE:NO"); // キャッシュするかどうかの指定
 			pw.print("#EXT-X-TARGETDURATION:"); // 何個前のデータから読み出すかの指定
@@ -104,21 +104,28 @@ public class Mp3SegmentCreator extends SegmentCreator{
 			pw.println("#EXT-X-MEDIA-SEQUENCE:0"); // このファイルの先頭がどこであるかの指定
 			pw.flush();
 			pw.close();
-			outputStream = new FileOutputStream(getTmpTarget() + counter + ".mp3");
+			mp3File = new FileOutputStream(getTmpTarget() + counter + ".mp3");
 		}
 		catch (Exception e) {
+			logger.error("初期化操作でエラーが発生しました。", e);
 		}
 	}
+	/**
+	 * セグメントの内容を書き込みます。
+	 * @param buf
+	 * @param size
+	 * @param timestamp
+	 */
 	private void _writeSegment(byte[] buf, int size, long timestamp) {
-		if(outputStream != null) {
+		if(mp3File != null) {
 			try {
 				// タイムスタンプの確認と、バッファがキーであるか確認。
 				if(timestamp > nextStartPos) {
 					// 以前のファイル出力を停止する。
-					outputStream.close();
+					mp3File.close();
 					// 出力用のm3u8ファイルの準備
 					// TODO hoge.m3u8固定になっているので、名前を変更しておきたい。
-					PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(getTmpTarget() + "hoge.m3u8", true)));
+					PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(getTmpTarget() + "index.m3u8", true)));
 /*					pw.println("#EXTM3U");
 					pw.println("#EXT-X-ALLOW-CACHE:NO");
 					pw.print("#EXT-X-TARGETDURATION:");
@@ -160,12 +167,13 @@ public class Mp3SegmentCreator extends SegmentCreator{
 					// カウンターのインクリメント
 					counter ++;
 					// データ出力先のストリームを開いておく。
-					outputStream = new FileOutputStream(getTmpTarget() + counter + ".mp3");
+					mp3File = new FileOutputStream(getTmpTarget() + counter + ".mp3");
 				}
 				// データの追記
-				outputStream.write(buf);
+				mp3File.write(buf);
 			}
 			catch (Exception e) {
+				logger.error("セグメント書き込み中にエラーが発生しました。", e);
 			}
 		}
 	}
@@ -222,19 +230,21 @@ public class Mp3SegmentCreator extends SegmentCreator{
 			if(timestamp - position <= 30) {
 				break;
 			}
-			logger.info("無音部を足して調整しました。");
 			_writeSegment(noSoundMp3, noSoundMp3.length, position); // mp3はすべてキーパケット扱いにできる。
 			decodedPackets ++;
 		}
 	}
+	/**
+	 * 閉じる
+	 */
 	@Override
 	public void close() {
-//		super.close();
-		if(outputStream != null) {
+		if(mp3File != null) {
 			try {
-				outputStream.close();
+				mp3File.close();
 			}
 			catch (Exception e) {
+				logger.error("ストリームを閉じる際にエラーが発生しました。", e);
 			}
 		}
 	}

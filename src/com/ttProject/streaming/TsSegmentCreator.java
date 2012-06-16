@@ -18,8 +18,6 @@ import org.slf4j.LoggerFactory;
 public class TsSegmentCreator extends SegmentCreator{
 	/** ロガー */
 	private final Logger logger = LoggerFactory.getLogger(TsSegmentCreator.class);
-	/** 動作対象拡張子 */
-	private String ext = ".ts";
 	/** 出力ファイルストリーム */
 	private FileOutputStream outputStream;
 	/** segmentのカウンター */
@@ -64,13 +62,6 @@ public class TsSegmentCreator extends SegmentCreator{
 		return tmpPath;
 	}
 	/**
-	 * 拡張子の変更
-	 * @param ext
-	 */
-	protected void setExt(String ext) {
-		this.ext = ext;
-	}
-	/**
 	 * 初期化
 	 */
 	public void initialize(String name) {
@@ -88,7 +79,7 @@ public class TsSegmentCreator extends SegmentCreator{
 		nextStartPos = getDuration();
 		// outputStreamの準備をしておく。
 		try {
-			outputStream = new FileOutputStream(getTmpTarget() + counter + ext);
+			outputStream = new FileOutputStream(getTmpTarget() + counter + ".ts");
 		}
 		catch (Exception e) {
 			logger.error("出力ストリームを開くのに失敗しました。", e);
@@ -108,8 +99,7 @@ public class TsSegmentCreator extends SegmentCreator{
 					// 以前のファイル出力を停止する。
 					outputStream.close();
 					// 出力用のm3u8ファイルの準備
-					// TODO hoge.m3u8固定になっているので、名前を変更しておきたい。
-					PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(getTmpTarget() + "hoge.m3u8")));
+					PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(getTmpTarget() + "index.m3u8")));
 					pw.println("#EXTM3U");
 					pw.println("#EXT-X-ALLOW-CACHE:NO");
 					pw.print("#EXT-X-TARGETDURATION:");
@@ -120,11 +110,11 @@ public class TsSegmentCreator extends SegmentCreator{
 						pw.print("#EXTINF:");
 						pw.println((int)(getDuration() / 1000));
 						pw.print(counter - 2);
-						pw.println(ext);
+						pw.println(".ts");
 						pw.print("#EXTINF:");
 						pw.println((int)(getDuration() / 1000));
 						pw.print(counter - 1);
-						pw.println(ext);
+						pw.println(".ts");
 					}
 					else if(counter - 1 >= 0) { 
 						pw.print("#EXT-X-MEDIA-SEQUENCE:");
@@ -132,7 +122,7 @@ public class TsSegmentCreator extends SegmentCreator{
 						pw.print("#EXTINF:");
 						pw.println((int)(getDuration() / 1000));
 						pw.print(counter - 1);
-						pw.println(ext);
+						pw.println(".ts");
 					}
 					else {
 						pw.println("#EXT-X-MEDIA-SEQUENCE:0");
@@ -140,7 +130,7 @@ public class TsSegmentCreator extends SegmentCreator{
 					pw.print("#EXTINF:");
 					pw.println((int)(getDuration() / 1000));
 					pw.print(counter);
-					pw.println(ext);
+					pw.println(".ts");
 					pw.close();
 					pw = null;
 					// 次の切断場所を定義
@@ -148,7 +138,7 @@ public class TsSegmentCreator extends SegmentCreator{
 					// カウンターのインクリメント
 					counter ++;
 					// データ出力先のストリームを開いておく。
-					outputStream = new FileOutputStream(getTmpTarget() + counter + ext);
+					outputStream = new FileOutputStream(getTmpTarget() + counter + ".ts");
 				}
 				// データの追記
 				outputStream.write(buf);

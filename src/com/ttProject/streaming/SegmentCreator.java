@@ -4,6 +4,8 @@ import java.io.File;
 
 /**
  * セグメントの作成クラスはにているところが結構あるので、abstractクラスにしてみました。
+ * durationやtmpPathの定義をここでstaticの形で実行してしまうと、各クラスことにわけることができなかった
+ * abstractとし、各クラスで処理を各ことにしました。ちょっと不明なコードになったか？
  * @author taktod
  */
 public abstract class SegmentCreator {

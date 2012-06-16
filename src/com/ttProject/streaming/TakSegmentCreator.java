@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * httpTakStreamingで利用するfth ftmデータを作成するクラス
+ * audio初期パケットとvideo初期パケットはこちらで判定すべきかと思うが、flazrとred5どちらでも依存動作になってしまうため、このクラスでは実行しないことにしました。
  * @author taktod
  */
 public class TakSegmentCreator extends SegmentCreator{
@@ -29,8 +30,6 @@ public class TakSegmentCreator extends SegmentCreator{
 	private FileOutputStream ftmFile = null;
 	/** segmentの次の切れ目 */
 	private int nextStartPos;
-	// こっちでpacketデータを保持しないのは、単にByteBufferのみおくってくるので、audioかvideoか判定しにくい。
-	// 可能だが、Red5もしくはFlazr依存動作になってしまう。
 	/**
 	 * segmentの長さの定義
 	 */
@@ -73,7 +72,10 @@ public class TakSegmentCreator extends SegmentCreator{
 		prepareTmpPath();
 		reset();
 	}
-	public void reset() {
+	/**
+	 * リセット動作
+	 */
+	private void reset() {
 		close();
 		counter = 0; // 0に戻す。
 		firstTimestamp = -1; // タイムスタンプを未設置にしておく。
@@ -93,23 +95,28 @@ public class TakSegmentCreator extends SegmentCreator{
 	 */
 	public void writeHeaderPacket(ByteBuffer buf, ByteBuffer video, ByteBuffer audio) {
 		try {
+			// TODO index.fth固定にしてあります。
 			FileOutputStream fthFile = new FileOutputStream(getTmpTarget() + "index.fth");
 			byte[] flvHeader = new byte[buf.limit()];
 			buf.get(flvHeader);
-			logger.info(HexDump.toHexString(flvHeader));
 			fthFile.write(flvHeader);
 			// videoデータがある場合は書き込む
-			if(video != null && video.limit() >= 11) {
-				byte[] firstVideo = new byte[video.limit()];
-				video.get(firstVideo);
-				logger.info(HexDump.toHexString(firstVideo));
-				fthFile.write(firstVideo);
+			ByteBuffer buffer = null;
+			if(video != null) {
+				buffer = video.duplicate();
+				if(buffer.limit() >= 11) {
+					byte[] firstVideo = new byte[buffer.limit()];
+					buffer.get(firstVideo);
+					fthFile.write(firstVideo);
+				}
 			}
-			if(audio != null && audio.limit() >= 11) {
-				byte[] firstAudio = new byte[audio.limit()];
-				audio.get(firstAudio);
-				logger.info(HexDump.toHexString(firstAudio));
-				fthFile.write(firstAudio);
+			if(audio != null) {
+				buffer = audio.duplicate();
+				if(buffer.limit() >= 11) {
+					byte[] firstAudio = new byte[buffer.limit()];
+					buffer.get(firstAudio);
+					fthFile.write(firstAudio);
+				}
 			}
 			if(fthFile != null) {
 				fthFile.flush();
@@ -135,9 +142,11 @@ public class TakSegmentCreator extends SegmentCreator{
 			if(passed > nextStartPos && isKey) {
 				// 次のファイルへの切り替えがきた場合切り替える。
 				ftmFile.close();
-				PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(getTmpTarget() + "hoge.ftl")));
+				// TODO index.ftl固定にしてあります。
+				PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(getTmpTarget() + "index.ftl")));
 				pw.println("#FTH:index.fth");
-				if(counter - 2 >= 0) {
+				// TODO 動作をよりリアルタイムにするために、載せるセグメント数を2つにした。
+/*				if(counter - 2 >= 0) {
 					pw.print("#FTM-X-MEDIA-SEQUENCE:");
 					pw.println(counter - 2);
 
@@ -149,7 +158,7 @@ public class TakSegmentCreator extends SegmentCreator{
 					pw.print(counter - 1);
 					pw.println(".ftm");
 				}
-				else if(counter - 1 >= 0) {
+				else*/ if(counter - 1 >= 0) {
 					pw.print("#FTM-X-MEDIA-SEQUENCE:");
 					pw.println(counter - 1);
 					
