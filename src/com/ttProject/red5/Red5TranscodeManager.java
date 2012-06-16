@@ -26,11 +26,15 @@ import com.ttProject.xuggle.out.mpegts.MpegtsOutputManager;
  * @author taktod
  */
 public class Red5TranscodeManager {
+	/** ロガー */
 	private final Logger logger = LoggerFactory.getLogger(Red5TranscodeManager.class);
 	/** xuggleの出力マネージャー */
 	private MpegtsOutputManager mpegtsManager = null;
-	private TsSegmentCreator tsSegmentCreator = null;
-	private Mp3SegmentCreator mp3SegmentCreator = null;
+	// 基本となるbean定義を保持していて、bean定義の有無で利用するか否か判定する。
+	private TsSegmentCreator   tsSegmentCreator   = null;
+	private Mp3SegmentCreator  mp3SegmentCreator  = null;
+	private JpegSegmentCreator jpegSegmentCreator = null;
+	private TakSegmentCreator  takSegmentCreator  = null;
 
 	public void setOutputManager(MpegtsOutputManager mpegtsManager) {
 		this.mpegtsManager = mpegtsManager;
@@ -40,6 +44,12 @@ public class Red5TranscodeManager {
 	}
 	public void setMp3SegmentCreator(Mp3SegmentCreator creator) {
 		this.mp3SegmentCreator = creator;
+	}
+	public void setJpegSegmentCreator(JpegSegmentCreator creator) {
+		this.jpegSegmentCreator = creator;
+	}
+	public void setTakSegmentCreator(TakSegmentCreator creator) {
+		this.takSegmentCreator = creator;
 	}
 	private Map<String, Holder> map = new ConcurrentHashMap<String, Red5TranscodeManager.Holder>();
 	/**
@@ -62,7 +72,15 @@ public class Red5TranscodeManager {
 			mp3SegmentCreator.initialize(name, mpegtsManager.getStreamInfo());//こいつはtranscoderに渡す必要あり。
 		}
 		JpegSegmentCreator jpegSegmentCreator = null;
+		if(this.jpegSegmentCreator != null) {
+			jpegSegmentCreator = new JpegSegmentCreator();
+			jpegSegmentCreator.initialize(name);
+		}
 		TakSegmentCreator takSegmentCreator = null;
+		if(this.takSegmentCreator != null) {
+			takSegmentCreator = new TakSegmentCreator();
+			takSegmentCreator.initialize(name);
+		}
 
 		// 変換プロセスの構築
 		Transcoder transcoder = new Transcoder(new FlvInputManager(), mpegtsManager, name, mp3SegmentCreator, jpegSegmentCreator);
@@ -88,12 +106,12 @@ public class Red5TranscodeManager {
 
 		// 参照保持
 		Holder holder = new Holder();
-		holder.listener = listener;
+		holder.listener   = listener;
 		holder.transcoder = transcoder;
-		holder.tsSegmentCreator = tsSegmentCreator;
-		holder.mp3SegmentCreator = mp3SegmentCreator;
+		holder.tsSegmentCreator   = tsSegmentCreator;
+		holder.mp3SegmentCreator  = mp3SegmentCreator;
 		holder.jpegSegmentCreator = jpegSegmentCreator;
-		holder.takSegmentCreator = takSegmentCreator;
+		holder.takSegmentCreator  = takSegmentCreator;
 		map.put(stream.getName(), holder);
 	}
 	/**
@@ -110,12 +128,12 @@ public class Red5TranscodeManager {
 	 */
 	private class Holder {
 		// streamListenerとtranscoderをセットで保持しておきます。
-		public StreamListener listener = null;
-		public Transcoder transcoder = null;
-		public TsSegmentCreator tsSegmentCreator = null;
-		public Mp3SegmentCreator mp3SegmentCreator = null;
+		public StreamListener listener   = null;
+		public Transcoder     transcoder = null;
+		public TsSegmentCreator   tsSegmentCreator   = null;
+		public Mp3SegmentCreator  mp3SegmentCreator  = null;
 		public JpegSegmentCreator jpegSegmentCreator = null;
-		public TakSegmentCreator takSegmentCreator = null;
+		public TakSegmentCreator  takSegmentCreator  = null;
 		/**
 		 * 不要になったオブジェクトをcloseします。
 		 */

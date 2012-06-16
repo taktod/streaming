@@ -14,6 +14,8 @@ import org.red5.server.net.rtmp.event.IRTMPEvent;
 import org.red5.server.net.rtmp.event.VideoData;
 import org.red5.server.net.rtmp.event.VideoData.FrameType;
 import org.red5.server.stream.IStreamData;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 import com.ttProject.streaming.TakSegmentCreator;
 //import com.ttProject.xuggle.Transcoder;
@@ -28,6 +30,8 @@ import com.ttProject.xuggle.in.flv.FlvDataQueue;
  * @author taktod
  */
 public class StreamListener implements IStreamListener {
+	/** ロガー */
+	private final Logger logger = LoggerFactory.getLogger(StreamListener.class);
 	/** flvヘッダのデータ長 */
 	private final static int HEADER_LENGTH = 9;
 	/** 各flvタグのヘッダー長 */
@@ -143,7 +147,7 @@ public class StreamListener implements IStreamListener {
 			return tagBuffer;
 		}
 		catch (Exception e) {
-			e.printStackTrace();
+			logger.error("tagデータからByteBufferを生成するのに失敗しました。", e);
 			return null;
 		}
 	}
@@ -169,6 +173,7 @@ public class StreamListener implements IStreamListener {
 			// 新規にタグを発見したので、updateが必要
 			audioFirstTag = tag;
 			if(takSegmentCreator != null) {
+				// TODO audioTagのfirstタグの書き込みは、AAC以外では必要ないらしい。(解析が面倒なのでいれてない。)
 				takSegmentCreator.writeHeaderPacket(makeHeaderByteBuffer(), makeTagByteBuffer(videoFirstTag), makeTagByteBuffer(audioFirstTag));
 			}
 		}
@@ -177,6 +182,7 @@ public class StreamListener implements IStreamListener {
 			// 新規にタグを発見したので、updateが必要
 			videoFirstTag = tag;
 			if(takSegmentCreator != null) {
+				// TODO videoTagのfirstタグの書き込みは、AVC(h.264)以外では必要ないみたい。(解析が面倒なのでいれてない。)
 				takSegmentCreator.writeHeaderPacket(makeHeaderByteBuffer(), makeTagByteBuffer(videoFirstTag), makeTagByteBuffer(audioFirstTag));
 			}
 		}
@@ -200,12 +206,8 @@ public class StreamListener implements IStreamListener {
 				VideoData dataPacket = (VideoData)rtmpEvent;
 				if(dataPacket.getFrameType() == FrameType.DISPOSABLE_INTERFRAME) {
 					// disposable interframeの場合はxuggleに渡さない→xuggleのffmpeg動作がバグって映像パケットエラーになるため。
+					// なお、flazrでfmsから取得した場合はエラーにならないみたいなので、red5のバグだと思われます
 					return;
-/*					tagBuffer.position(11);
-					byte b = (byte)((tagBuffer.get() & 0x0F) + 0x20);
-					tagBuffer.position(11);
-					tagBuffer.put(b);
-					tagBuffer.position(0);*/
 				}
 			}
 			// ここでビデオタグの場合のデータについて調査しなければいけない。
@@ -226,7 +228,7 @@ public class StreamListener implements IStreamListener {
 			checkRtmpEvent(rtmpEvent);
 		}
 		catch (Exception e) {
-			e.printStackTrace();
+			logger.error("packetデータをストリームから取得したときに何らかのエラーが発生しました。", e);
 		}
 	}
 }

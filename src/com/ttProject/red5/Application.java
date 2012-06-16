@@ -13,8 +13,11 @@ import org.slf4j.LoggerFactory;
  * @author taktod
  */
 public class Application extends ApplicationAdapter {
+	/** ロガー */
 	private final Logger logger = LoggerFactory.getLogger(Application.class);
+	/** 変換定義保持クラス */
 	private Red5TranscodeManager manager = null;
+	/** 許可するストリーム名 */
 	private Set<String> allowedStreamName = new HashSet<String>();
 	/**
 	 * 変換マネージャーを設置します。
