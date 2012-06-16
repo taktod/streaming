@@ -3,6 +3,7 @@ package com.ttProject.xuggle.out.mpegts;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.ttProject.xuggle.IMediaManager;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IRational;
 import com.xuggle.xuggler.ISimpleMediaFile;
@@ -17,7 +18,7 @@ import com.xuggle.xuggler.SimpleMediaFile;
  * このままではxuggleのない環境では、利用できないので、そのあたり修正しておきたいところ。
  * @author taktod
  */
-public class MpegtsOutputManager {
+public class MpegtsOutputManager implements IMediaManager{
 	/** 出力用のmpegtsのストリーム情報の保持 */
 	private static final ISimpleMediaFile streamInfo = new SimpleMediaFile();
 	/** ffmpegに渡すvideo用のプロパティの詳細設定 */
@@ -135,36 +136,37 @@ public class MpegtsOutputManager {
 	}
 	// 以下内部処理用
 	/**
-	 * 定義されたstreamInfoを取得します
-	 * @return
+	 * {@inheritDoc}
 	 */
+	@Override
 	public ISimpleMediaFile getStreamInfo() {
 		return streamInfo;
 	}
 	/**
-	 * ビデオプロパティー参照
+	 * {@inheritDoc}
 	 */
+	@Override
 	public Map<String, String> getVideoProperty() {
 		return videoProperties;
 	}
 	/**
-	 * ビデオフラグ参照
-	 * @return
+	 * {@inheritDoc}
 	 */
+	@Override
 	public Map<IStreamCoder.Flags, Boolean> getVideoFlags() {
 		return videoFlags;
 	}
 	/**
-	 * 動作プロトコル定義
-	 * @return
+	 * {@inheritDoc}
 	 */
+	@Override
 	public String getProtocol() {
 		return MpegtsHandlerFactory.DEFAULT_PROTOCOL;
 	}
 	/**
-	 * 動作フォーマット
-	 * @return
+	 * {@inheritDoc}
 	 */
+	@Override
 	public String getFormat() {
 		return "mpegts";
 	}

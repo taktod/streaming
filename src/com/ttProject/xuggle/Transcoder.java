@@ -9,8 +9,6 @@ import org.slf4j.LoggerFactory;
 
 import com.ttProject.streaming.JpegSegmentCreator;
 import com.ttProject.streaming.Mp3SegmentCreator;
-import com.ttProject.xuggle.in.flv.FlvInputManager;
-import com.ttProject.xuggle.out.mpegts.MpegtsOutputManager;
 import com.xuggle.xuggler.IAudioResampler;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.ICodec;
@@ -111,8 +109,8 @@ public class Transcoder implements Runnable {
 	 * 入力、出力等の定義データを受け取る
 	 */
 	public Transcoder(
-			FlvInputManager inputManager,
-			MpegtsOutputManager outputManager,
+			IMediaManager inputManager,
+			IMediaManager outputManager,
 			String name,
 			Mp3SegmentCreator mp3SegmentCreator,
 			JpegSegmentCreator jpegSegmentCreator) {
