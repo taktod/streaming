@@ -93,7 +93,7 @@ public class Transcoder implements Runnable {
 	 * タイムスタンプを計算します。(ミリ秒単位に書き換えて扱います。)
 	 * @param packet
 	 */
-	private void setOutputContainerData(IPacket packet, boolean isKey) {
+	private void setOutputContainerData(IPacket packet, Boolean isKey) {
 		if(packet == null) {
 			return;
 		}
@@ -102,7 +102,9 @@ public class Transcoder implements Runnable {
 			return;
 		}
 		this.timestamp = packet.getTimeStamp() * 1000 * timebase.getNumerator() / timebase.getDenominator();
-		this.isKey = isKey;
+		if(isKey != null) {
+			this.isKey = isKey;
+		}
 	}
 	/**
 	 * コンストラクタ
@@ -195,7 +197,10 @@ public class Transcoder implements Runnable {
 			// パケットの入力を取得する。
 			retval = inputContainer.readNextPacket(packet);
 			if(retval < 0) {
-				// queueをpollにしている場合はここにくることがある。いまのところtakeにして、waitするようにしているので、ありえない。
+				if(retval == -35) {
+					// リソースが一時的にない場合 つづけていれば動作可能になるので、この場合だけ例外的にスキップする。
+					continue;
+				}
 				keepRunning = false;
 				break;
 			}
@@ -555,7 +560,7 @@ public class Transcoder implements Runnable {
 					mp3SegmentCreator.writeSegment(data, b.limit(), inPacket.getTimeStamp());
 				}
 				// データ参照用の情報を準備しておく。
-				setOutputContainerData(outPacket, false); // 音声パケットは強制的にキーパケットではないとしておきます。
+				setOutputContainerData(outPacket, null); // 音声パケットはキー情報にはさわらないようにしておきます。
 				// mpegtsのデータができあがったのでコンテナに出力
 				outputContainer.writePacket(outPacket);
 			}
