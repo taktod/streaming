@@ -56,6 +56,9 @@ public class TranscodeWriter implements RtmpWriter {
 	private ByteBuffer firstAudioPacket = null;
 	private ByteBuffer firstVideoPacket = null;
 	
+	/** 変換動作スレッド */
+	Thread transcodeThread = null;
+	
 	/**
 	 * コンストラクタ
 	 * @param name
@@ -109,7 +112,8 @@ public class TranscodeWriter implements RtmpWriter {
 
 		if(mpegtsManager != null) {
 			// これは動きっぱなしにはなってません。transcoder.closeできちんととまっている。
-			Thread transcodeThread = new Thread(transcoder);
+			// 別のところ(FlvDataQueueのところでwait状態になってしまうので、interruptかける必要あり。)
+			transcodeThread = new Thread(transcoder);
 			transcodeThread.setDaemon(true);
 			transcodeThread.start();
 		}
@@ -118,6 +122,7 @@ public class TranscodeWriter implements RtmpWriter {
 	 * 放送が停止したとき
 	 */
 	public void onUnpublish() {
+		logger.info("unpublishきたよ？");
 		close();
 	}
 	/**
@@ -210,7 +215,9 @@ public class TranscodeWriter implements RtmpWriter {
 					}
 				}
 			}
-			inputDataQueue.putTagData(buf);
+			if(inputDataQueue != null) {
+				inputDataQueue.putTagData(buf);
+			}
 			if(takSegmentCreator != null) {
 				if(header.isVideo()) {
 					VideoTag videoTag = new VideoTag(flvAtom.encode().getByte(0));
@@ -236,6 +243,10 @@ public class TranscodeWriter implements RtmpWriter {
 			transcoder.close();
 			transcoder = null;
 		}
+		if(transcodeThread != null) {
+			transcodeThread.interrupt();
+			transcodeThread = null;
+		}
 		if(inputDataQueue != null) {
 			inputDataQueue.close();
 			inputDataQueue = null;
@@ -243,6 +254,18 @@ public class TranscodeWriter implements RtmpWriter {
 		if(takSegmentCreator != null) {
 			takSegmentCreator.close();
 			takSegmentCreator = null;
+		}
+		if(jpegSegmentCreator != null) {
+			jpegSegmentCreator.close();
+			jpegSegmentCreator = null;
+		}
+		if(mp3SegmentCreator != null) {
+			mp3SegmentCreator.close();
+			mp3SegmentCreator = null;
+		}
+		if(tsSegmentCreator != null) {
+			tsSegmentCreator.close();
+			tsSegmentCreator = null;
 		}
 	}
 }
