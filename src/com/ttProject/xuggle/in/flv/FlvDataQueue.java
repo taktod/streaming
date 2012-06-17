@@ -56,6 +56,10 @@ public class FlvDataQueue {
 			result = dataQueue.take();
 			return result;
 		}
+		catch (InterruptedException e) {
+			// threadの動作が阻害されただけなら特になにもせずぬける。(動作がとまっただけなので・・・)
+			return null;
+		}
 		catch (Exception e) {
 			logger.error("dataQueueの取得で例外が発生しました。", e);
 			// 例外がでた場合は、nullを応答しておく。
