@@ -94,6 +94,7 @@ public class Mp3SegmentCreator extends SegmentCreator{
 	private void reset() {
 		close();
 		counter = 0;
+		decodedPackets = 0; // 処理済みパケット数の記録動作をリセットするのをわすれてた。
 		nextStartPos = getDuration();
 		try {
 			PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(getTmpTarget() + "index.m3u8", true)));
