@@ -58,6 +58,9 @@ public class TranscodeWriter implements RtmpWriter {
 	
 	/** 変換動作スレッド */
 	Thread transcodeThread = null;
+
+	/** 開始時の動作タイムスタンプ */
+	private int startTime = -1;
 	
 	/**
 	 * コンストラクタ
@@ -132,6 +135,8 @@ public class TranscodeWriter implements RtmpWriter {
 		try {
 			firstAudioPacket = null;
 			firstVideoPacket = null;
+			// タイムスタンプのずれ分を登録しておく。
+			startTime = -1;
 			// headerデータを作成すでにAudio + Videoになっているので、そのままつかわせてもらう。
 			// ヘッダ情報を作成した瞬間にデータを送っておく。
 			if(takSegmentCreator != null) {
@@ -181,6 +186,11 @@ public class TranscodeWriter implements RtmpWriter {
 	private void write(final FlvAtom flvAtom) {
 		// firstパケットは保持しておく必要がある。
 		RtmpHeader header = flvAtom.getHeader();
+		if(startTime == -1) {
+			startTime = header.getTime();
+		}
+		header.setTime(header.getTime() - startTime);
+//		logger.info("timestamp: {}", header.getTime());
 		try {
 			// このデータをFlvDataQueueに渡せばOK
 			ByteBuffer buf = flvAtom.write().toByteBuffer();
@@ -240,30 +250,37 @@ public class TranscodeWriter implements RtmpWriter {
 	public void close() {
 		// ストリームの停止と、transcoder等もろもろの停止を実行する必要あり。
 		if(transcoder != null) {
+			logger.info("transcoderを閉じます。");
 			transcoder.close();
 			transcoder = null;
 		}
 		if(transcodeThread != null) {
+			logger.info("transcoderのスレッドをとめます。");
 			transcodeThread.interrupt();
 			transcodeThread = null;
 		}
 		if(inputDataQueue != null) {
+			logger.info("入力queueを閉じます。");
 			inputDataQueue.close();
 			inputDataQueue = null;
 		}
 		if(takSegmentCreator != null) {
+			logger.info("takセグメント動作を停止します。");
 			takSegmentCreator.close();
 			takSegmentCreator = null;
 		}
 		if(jpegSegmentCreator != null) {
+			logger.info("jpegセグメント動作を停止します。");
 			jpegSegmentCreator.close();
 			jpegSegmentCreator = null;
 		}
 		if(mp3SegmentCreator != null) {
+			logger.info("mp3セグメント動作を停止します。");
 			mp3SegmentCreator.close();
 			mp3SegmentCreator = null;
 		}
 		if(tsSegmentCreator != null) {
+			logger.info("tsセグメント動作を停止します。");
 			tsSegmentCreator.close();
 			tsSegmentCreator = null;
 		}
