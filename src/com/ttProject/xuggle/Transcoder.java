@@ -117,6 +117,7 @@ public class Transcoder implements Runnable {
 			String name,
 			Mp3SegmentCreator mp3SegmentCreator,
 			JpegSegmentCreator jpegSegmentCreator) {
+		logger.info("transcoderを初期化しました。");
 		// 出力定義
 		this.outputProtocol = outputManager.getProtocol();
 		this.outputFormat   = outputManager.getFormat();
@@ -149,6 +150,7 @@ public class Transcoder implements Runnable {
 			e.printStackTrace();
 		}
 		finally {
+			logger.info("処理がおわりました。");
 			// おわったら変換をとめる。
 			closeAll();
 		}
@@ -166,6 +168,9 @@ public class Transcoder implements Runnable {
 		try {
 			closeOutputContainer(); // 出力コンテナの解放
 			closeInputContainer(); // 入力コンテナの解放
+		}
+		catch (Exception e) {
+			logger.error("停止動作でエラーが発生しました。", e);
 		}
 		finally {
 		}
@@ -228,14 +233,17 @@ public class Transcoder implements Runnable {
 	 */
 	private void closeInputContainer() {
 		if(inputVideoCoder != null) {
+			logger.info("videoコーダーを閉じます。");
 			inputVideoCoder.close();
 			inputVideoCoder = null;
 		}
 		if(inputAudioCoder != null) {
+			logger.info("audioコーダーを閉じます。");
 			inputAudioCoder.close();
 			inputAudioCoder = null;
 		}
 		if(inputContainer != null) {
+			logger.info("入力コンテナを閉じます。");
 			inputContainer.close();
 			inputContainer = null;
 		}
@@ -245,17 +253,21 @@ public class Transcoder implements Runnable {
 	 */
 	private void closeOutputContainer() {
 		if(outputContainer != null) {
+			logger.info("出力コンテナに停止時データを書き込みます。");
 			outputContainer.writeTrailer();
 		}
 		if(outputVideoCoder != null) {
+			logger.info("videoエンコードコーダーを閉じます。");
 			outputVideoCoder.close();
 			outputVideoCoder = null;
 		}
 		if(outputAudioCoder != null) {
+			logger.info("audioエンコードコーダーを閉じます。");
 			outputAudioCoder.close();
 			outputAudioCoder = null;
 		}
 		if(outputContainer != null) {
+			logger.info("出力コンテナを閉じます。");
 			outputContainer.close();
 			outputContainer = null;
 		}
@@ -264,6 +276,7 @@ public class Transcoder implements Runnable {
 	 * 出力用のコンテナを開く
 	 */
 	private void openOutputContainer() {
+		logger.info("outputContainerを開きます。");
 		String url;
 		int retval = -1;
 		url = outputProtocol + ":" + taskName;
@@ -293,6 +306,7 @@ public class Transcoder implements Runnable {
 	 * 出力videoコーダーを開きます。
 	 */
 	private void openOutputVideoCoder() {
+		logger.info("出力videoCoderを開きます。");
 		IStream outStream = outputContainer.addNewStream(outputContainer.getNumStreams());
 		if(outStream == null) {
 			throw new RuntimeException("video出力用のストリーム生成ができませんでした。");
@@ -334,6 +348,7 @@ public class Transcoder implements Runnable {
 	 * 出力audioコーダーを開きます。
 	 */
 	private void openOutputAudioCoder() {
+		logger.info("出力audioCoderを開きます。");
 		IStream outStream = outputContainer.addNewStream(outputContainer.getNumStreams());
 		if(outStream == null) {
 			throw new RuntimeException("audio出力用のストリーム生成ができませんでした。");
@@ -409,6 +424,7 @@ public class Transcoder implements Runnable {
 					// 設定でvideo出力をOFFにしている場合は処理しない。
 					return false;
 				}
+				logger.info("videoCoderのはじめてのOpenです: {}", coder);
 				videoStreamId = packet.getStreamIndex();
 				// 必要があるなら、出力コンテナーを閉じる
 				closeOutputContainer();
@@ -416,11 +432,13 @@ public class Transcoder implements Runnable {
 				openOutputContainer();
 			}
 			else if(inputVideoCoder.hashCode() == coder.hashCode()){
+//				logger.info("現行のビデオコーダーと一致するデータです。");
 				// コーダーが一致する場合はこのままコーダーをつかって処理をすればよい。
 				return true;
 			}
 			else {
 				// 一致しない新しいパケットがきた場合は、今後は新しいので動作するようにする。
+				logger.info("現行のビデオコーダーと一致しないデータなので、あたらしく開きます。");
 				inputVideoCoder.close();
 				inputVideoCoder = null;
 				videoStreamId = packet.getStreamIndex();
@@ -548,7 +566,7 @@ public class Transcoder implements Runnable {
 		while(numSamplesConsumed < preEncode.getNumSamples()) {
 			retval = outputAudioCoder.encodeAudio(outPacket, preEncode, numSamplesConsumed);
 			if(retval <= 0) {
-//				logger.warn("audioのエンコードに失敗しましたが、無視して、続けます。");
+				logger.warn("audioのエンコードに失敗しましたが、無視して、続けます。");
 				break;
 			}
 			numSamplesConsumed += retval;
@@ -638,7 +656,22 @@ public class Transcoder implements Runnable {
 		if(preEncode.isComplete()) {
 			retval = outputVideoCoder.encodeVideo(outPacket, preEncode, 0);
 			if(retval <= 0) {
+				// TODO どうしてもここでビデオエンコードがうまくいかない。
+				/*
+				 * しらべるべきことメモ
+				 * まず、エンコード失敗について、音声と映像で違いがあるか確認する。
+				 * つづいて、入力されたflvデータについて違いがあるか確認する。
+				 * その他確認事項を探し出してなにが違うのか調査する。
+				 * 
+				 * TODO 結果としては、rtmpで送られてくるflvデータが実はリセットされていなかった模様です。
+				 * TranscodeWriterの処理で、publishし直すたびにtimestampをずらすようにしたところ動作しました。
+				 * ただし、AACベースにすると、mp3segmentは問題ないですが、tsファイルに音飛びが発生する模様。
+				 * 原因は不明ですが、ffmpegの変換パラメーターに難があるのだろうか？
+				 */
+//				logger.info("inPacket: {}", inPacket);
 //				logger.info("videoエンコードに失敗しましたが、このまま続けます。");
+				// ここでの失敗は0になるらしい。
+				return;
 			}
 			numBytesConsumed += retval;
 			if(outPacket.isComplete()) {
