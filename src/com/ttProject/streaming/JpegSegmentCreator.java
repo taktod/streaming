@@ -2,7 +2,10 @@ package com.ttProject.streaming;
 
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 
 import javax.imageio.ImageIO;
 
@@ -88,6 +91,7 @@ public class JpegSegmentCreator extends SegmentCreator{
 	private IConverter converter = null;
 	/** 画像カウンター(こいつはファイルのデータ) */
 	private int counter = 0;
+	private byte[] frameStatus = new byte[10]; // 内部フレームの有無保持
 	/**
 	 * 初期化しておく。
 	 * @param name
@@ -95,6 +99,12 @@ public class JpegSegmentCreator extends SegmentCreator{
 	public void initialize(String name) {
 		setName(name);
 		prepareTmpPath();
+		resetFrameStatus();
+	}
+	private void resetFrameStatus() {
+		for(int i = 0;i < 10;i ++) {
+			frameStatus[i] = 0;
+		}
 	}
 	/**
 	 * 映像の画像要素から画像を取り出して保存する。
@@ -114,18 +124,35 @@ public class JpegSegmentCreator extends SegmentCreator{
 			if((int)(timestamp / 1000) != counter) {
 				// あたらしいイメージの処理にはいるので、画像を保存しておく。
 				ImageIO.write(outputImage, "jpeg", new File(getTmpTarget() + counter + ".jpg"));
+				// すでにおわったデータを書き込みます。
+				PrintWriter pw;
+				if(counter % 60 == 0) {
+					// あたらしいデータの場合
+					pw = new PrintWriter(new BufferedWriter(new FileWriter(getTmpTarget() + "index.jpl", false)));
+					pw.print("#JPL-X-MEDIA-SEQUENCE:");
+					pw.println(counter);
+				}
+				else {
+					pw = new PrintWriter(new BufferedWriter(new FileWriter(getTmpTarget() + "index.jpl", true)));
+				}
+				pw.print("#JPLINF:");
+				for(byte b : frameStatus) {
+					pw.print(b);
+				}
+				pw.print(":");
+				pw.print(counter);
+				pw.println(".jpg");
+				pw.close();
 				counter = (int)timestamp / 1000;
 				outputImage = new BufferedImage(160, 1200, BufferedImage.TYPE_3BYTE_BGR);
+				resetFrameStatus();
 			}
 			javaImage = converter.toImage(picture);
 			Graphics2D g2d = outputImage.createGraphics();
 			int pos = (int)(timestamp / 100) % 10;
 			g2d.drawImage(javaImage, 0, 120 * pos, 160, 120, null);
-			// 前の画像のカウンターが現在の画像カウンターと比べて・・・を調べる
-			// とりいそぎ画像を160x120に変更し、４つあるエントリーのうち正しいところにおいておく。
-			// 1 2
-			// 3 4
-			// シーンが4つ分進んだら(0.4秒分タイムスタンプが進んだら)ファイルに保存し、次の画像の生成に取りかかる。
+			// 画像の書き込みを実行した段階でエレメントの有無は決定する。
+			frameStatus[pos] = 1;
 		}
 		catch (Exception e) {
 			logger.error("画像コンバート中にエラーが発生しました。", e);
