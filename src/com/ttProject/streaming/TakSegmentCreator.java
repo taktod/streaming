@@ -144,8 +144,8 @@ public class TakSegmentCreator extends SegmentCreator{
 				// TODO index.ftl固定にしてあります。
 				PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(getTmpTarget() + "index.ftl")));
 				pw.println("#FTH:index.fth");
-				// TODO 動作をよりリアルタイムにするために、載せるセグメント数を2つにした。
-/*				if(counter - 2 >= 0) {
+				// 安定性のために３つに戻しました。
+				if(counter - 2 >= 0) {
 					pw.print("#FTM-X-MEDIA-SEQUENCE:");
 					pw.println(counter - 2);
 
@@ -157,7 +157,7 @@ public class TakSegmentCreator extends SegmentCreator{
 					pw.print(counter - 1);
 					pw.println(".ftm");
 				}
-				else*/ if(counter - 1 >= 0) {
+				else if(counter - 1 >= 0) {
 					pw.print("#FTM-X-MEDIA-SEQUENCE:");
 					pw.println(counter - 1);
 					
