@@ -104,9 +104,11 @@ public class TsSegmentCreator extends SegmentCreator{
 		if(outputStream != null) {
 			try {
 				// タイムスタンプの確認と、バッファがキーであるか確認。
-				if(timestamp > nextStartPos && isKey) {
+//				if(timestamp > nextStartPos && isKey) {
+				if(timestamp > nextStartPos) { // こちらも単純に、keyフレームでなくても、時間が建ったらsegmentが完了したものとして処理しておく。
 					// 以前のファイル出力を停止する。
 					outputStream.close();
+					doComment(getTmpTarget() + counter + ".ts");
 					// 出力用のm3u8ファイルの準備
 					PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(getTmpTarget() + "index.m3u8")));
 					pw.println("#EXTM3U");
@@ -142,6 +144,7 @@ public class TsSegmentCreator extends SegmentCreator{
 					pw.println(".ts");
 					pw.close();
 					pw = null;
+					doComment(getTmpTarget() + "index.m3u8");
 					// 次の切断場所を定義
 					nextStartPos = timestamp + getDuration();
 					// カウンターのインクリメント

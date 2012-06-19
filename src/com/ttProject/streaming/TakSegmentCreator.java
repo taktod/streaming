@@ -148,11 +148,12 @@ public class TakSegmentCreator extends SegmentCreator{
 		}
 		int passed = timestamp - firstTimestamp;
 		try {
-			if(passed > nextStartPos && isKey) {
+//			if(passed > nextStartPos && isKey) {
+			if(passed > nextStartPos) { // キーフレームであるかどうかは判定にいれず、単純にタイムスタンプのみで、segmentの切れる部分を考えることにする。(たぶん問題なく動作する。)
 				// 次のファイルへの切り替えがきた場合切り替える。
 				ftmFile.close();
 				// 次のファイルに移動した瞬間前のファイルは書き込み実行する。
-				doComment(getTmpTarget() + counter + ".ftm");
+//				doComment(getTmpTarget() + counter + ".ftm");
 				// TODO index.ftl固定にしてあります。
 				PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(getTmpTarget() + "index.ftl")));
 				pw.println("#FTH:index.fth");
@@ -186,7 +187,8 @@ public class TakSegmentCreator extends SegmentCreator{
 
 				pw.close();
 				pw = null;
-				doComment(getTmpTarget() + "index.ftl");
+//				doComment(getTmpTarget() + "index.ftl");
+				doComment(getTmpTarget() + counter + ".ftm"); // 前のファイルとindex.ftlをあげることにする。
 				nextStartPos = passed + getDuration();
 				counter ++;
 				ftmFile = new FileOutputStream(getTmpTarget() + counter + ".ftm");
