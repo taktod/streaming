@@ -62,6 +62,15 @@ public class TakSegmentCreator extends SegmentCreator{
 	protected String getTmpPath() {
 		return tmpPath;
 	}
+	private static String command = null;
+	@Override
+	public void setCommand(String command) {
+		TakSegmentCreator.command = command;
+	}
+	@Override
+	protected String getCommand() {
+		return command;
+	}
 	/**
 	 * 初期化
 	 * @param name
@@ -122,6 +131,7 @@ public class TakSegmentCreator extends SegmentCreator{
 				fthFile.close();
 				fthFile = null;
 			}
+			doComment(getTmpTarget() + "index.fth");
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -141,6 +151,8 @@ public class TakSegmentCreator extends SegmentCreator{
 			if(passed > nextStartPos && isKey) {
 				// 次のファイルへの切り替えがきた場合切り替える。
 				ftmFile.close();
+				// 次のファイルに移動した瞬間前のファイルは書き込み実行する。
+				doComment(getTmpTarget() + counter + ".ftm");
 				// TODO index.ftl固定にしてあります。
 				PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(getTmpTarget() + "index.ftl")));
 				pw.println("#FTH:index.fth");
@@ -174,6 +186,7 @@ public class TakSegmentCreator extends SegmentCreator{
 
 				pw.close();
 				pw = null;
+				doComment(getTmpTarget() + "index.ftl");
 				nextStartPos = passed + getDuration();
 				counter ++;
 				ftmFile = new FileOutputStream(getTmpTarget() + counter + ".ftm");

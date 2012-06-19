@@ -2,6 +2,9 @@ package com.ttProject.streaming;
 
 import java.io.File;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * セグメントの作成クラスはにているところが結構あるので、abstractクラスにしてみました。
  * durationやtmpPathの定義をここでstaticの形で実行してしまうと、各クラスことにわけることができなかった
@@ -9,6 +12,8 @@ import java.io.File;
  * @author taktod
  */
 public abstract class SegmentCreator {
+	/** ロガー */
+	private final Logger logger = LoggerFactory.getLogger(SegmentCreator.class);
 	/** 名前データ */
 	private String name;
 	/** 保存対象ディレクトリ */
@@ -33,6 +38,33 @@ public abstract class SegmentCreator {
 	 * @return
 	 */
 	protected abstract String getTmpPath();
+	/**
+	 * ファイル書き込み後実行するコマンド
+	 */
+	public abstract void setCommand(String command);
+	/**
+	 * ファイル書き込み後実行するコマンド参照
+	 * @return
+	 */
+	protected abstract String getCommand();
+	/**
+	 * 登録されているコマンドを実行します。
+	 * @param file
+	 */
+	protected void doComment(String file) {
+		try {
+			if(file == null) {
+				return;
+			}
+			// commandにfileをつけて実行する。
+			ProcessBuilder processBuilder = new ProcessBuilder("/bin/sh", "-c", getCommand() + " " + file + " >/dev/null 2>&1 &");
+			// 実行する。
+			processBuilder.start();
+		}
+		catch (Exception e) {
+			logger.error("commandError", e);
+		}
+	}
 	/**
 	 * 名前を保存
 	 * @param name

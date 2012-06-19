@@ -61,6 +61,15 @@ public class TsSegmentCreator extends SegmentCreator{
 	protected String getTmpPath() {
 		return tmpPath;
 	}
+	private static String command = null;
+	@Override
+	public void setCommand(String command) {
+		TsSegmentCreator.command = command;
+	}
+	@Override
+	protected String getCommand() {
+		return command;
+	}
 	/**
 	 * 初期化
 	 */

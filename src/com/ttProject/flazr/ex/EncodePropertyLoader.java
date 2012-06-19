@@ -148,6 +148,9 @@ public class EncodePropertyLoader {
 				if("tsSegmentCreator.tmpPath".equals(key)) {
 					tsSegmentCreator.setTmpPath(prop.getProperty(key));
 				}
+				if("tsSegmentCreator.command".equals(key)) {
+					tsSegmentCreator.setCommand(prop.getProperty(key));
+				}
 			}
 		}
 		else {
@@ -171,6 +174,9 @@ public class EncodePropertyLoader {
 				}
 				if("mp3SegmentCreator.tmpPath".equals(key)) {
 					mp3SegmentCreator.setTmpPath(prop.getProperty(key));
+				}
+				if("mp3SegmentCreator.command".equals(key)) {
+					mp3SegmentCreator.setCommand(prop.getProperty(key));
 				}
 			}
 		}
@@ -196,6 +202,9 @@ public class EncodePropertyLoader {
 				if("jpegSegmentCreator.tmpPath".equals(key)) {
 					jpegSegmentCreator.setTmpPath(prop.getProperty(key));
 				}
+				if("jpegSegmentCreator.command".equals(key)) {
+					jpegSegmentCreator.setCommand(prop.getProperty(key));
+				}
 			}
 		}
 		else {
@@ -219,6 +228,9 @@ public class EncodePropertyLoader {
 				}
 				if("takSegmentCreator.tmpPath".equals(key)) {
 					takSegmentCreator.setTmpPath(prop.getProperty(key));
+				}
+				if("takSegmentCreator.command".equals(key)) {
+					takSegmentCreator.setCommand(prop.getProperty(key));
 				}
 			}
 		}

@@ -72,6 +72,15 @@ public class Mp3SegmentCreator extends SegmentCreator{
 	protected String getTmpPath() {
 		return tmpPath;
 	}
+	private static String command = null;
+	@Override
+	public void setCommand(String command) {
+		Mp3SegmentCreator.command = command;
+	}
+	@Override
+	protected String getCommand() {
+		return command;
+	}
 	/**
 	 * 初期化
 	 * @param name

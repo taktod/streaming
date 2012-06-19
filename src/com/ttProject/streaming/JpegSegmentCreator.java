@@ -76,6 +76,15 @@ public class JpegSegmentCreator extends SegmentCreator{
 	protected String getTmpPath() {
 		return tmpPath;
 	}
+	private static String command = null;
+	@Override
+	public void setCommand(String command) {
+		JpegSegmentCreator.command = command;
+	}
+	@Override
+	protected String getCommand() {
+		return command;
+	}
 	/**
 	 * 閉じるときの動作
 	 */
