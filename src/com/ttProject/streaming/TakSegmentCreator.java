@@ -9,6 +9,8 @@ import java.nio.ByteBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+//import com.ttProject.ftp.FtpUploader;
+
 /**
  * httpTakStreamingで利用するfth ftmデータを作成するクラス
  * audio初期パケットとvideo初期パケットはこちらで判定すべきかと思うが、flazrとred5どちらでも依存動作になってしまうため、このクラスでは実行しないことにしました。
@@ -29,6 +31,8 @@ public class TakSegmentCreator extends SegmentCreator{
 	private FileOutputStream ftmFile = null;
 	/** segmentの次の切れ目 */
 	private int nextStartPos;
+//	private FtpUploader ftpUploader;
+//	private Thread t;
 	/**
 	 * segmentの長さの定義
 	 */
@@ -76,6 +80,10 @@ public class TakSegmentCreator extends SegmentCreator{
 	 * @param name
 	 */
 	public void initialize(String name) {
+//		ftpUploader = new FtpUploader();
+//		t = new Thread(ftpUploader);
+//		t.setDaemon(true);
+//		t.start();
 		setName(name);
 		prepareTmpPath();
 		reset();
@@ -132,6 +140,7 @@ public class TakSegmentCreator extends SegmentCreator{
 				fthFile = null;
 			}
 			doComment(getTmpTarget() + "index.fth");
+//			ftpUploader.putNewQueue(getTmpTarget() + "index.fth");
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -152,8 +161,9 @@ public class TakSegmentCreator extends SegmentCreator{
 			if(passed > nextStartPos) { // キーフレームであるかどうかは判定にいれず、単純にタイムスタンプのみで、segmentの切れる部分を考えることにする。(たぶん問題なく動作する。)
 				// 次のファイルへの切り替えがきた場合切り替える。
 				ftmFile.close();
+//				ftpUploader.putNewQueue(getTmpTarget() + counter + ".ftm");
 				// 次のファイルに移動した瞬間前のファイルは書き込み実行する。
-//				doComment(getTmpTarget() + counter + ".ftm");
+				doComment(getTmpTarget() + counter + ".ftm");
 				// TODO index.ftl固定にしてあります。
 				PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(getTmpTarget() + "index.ftl")));
 				pw.println("#FTH:index.fth");
@@ -187,8 +197,9 @@ public class TakSegmentCreator extends SegmentCreator{
 
 				pw.close();
 				pw = null;
-//				doComment(getTmpTarget() + "index.ftl");
-				doComment(getTmpTarget() + counter + ".ftm"); // 前のファイルとindex.ftlをあげることにする。
+				doComment(getTmpTarget() + "index.ftl");
+//				doComment(getTmpTarget() + counter + ".ftm"); // 前のファイルとindex.ftlをあげることにする。
+//				ftpUploader.putNewQueue(getTmpTarget() + "index.ftl");
 				nextStartPos = passed + getDuration();
 				counter ++;
 				ftmFile = new FileOutputStream(getTmpTarget() + counter + ".ftm");
