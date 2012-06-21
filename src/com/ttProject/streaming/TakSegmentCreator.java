@@ -157,8 +157,8 @@ public class TakSegmentCreator extends SegmentCreator{
 		}
 		int passed = timestamp - firstTimestamp;
 		try {
-//			if(passed > nextStartPos && isKey) {
-			if(passed > nextStartPos) { // キーフレームであるかどうかは判定にいれず、単純にタイムスタンプのみで、segmentの切れる部分を考えることにする。(たぶん問題なく動作する。)
+			if(passed > nextStartPos && isKey) {
+//			if(passed > nextStartPos) { // キーフレームであるかどうかは判定にいれず、単純にタイムスタンプのみで、segmentの切れる部分を考えることにする。(たぶん問題なく動作する。)
 				// 次のファイルへの切り替えがきた場合切り替える。
 				ftmFile.close();
 //				ftpUploader.putNewQueue(getTmpTarget() + counter + ".ftm");
