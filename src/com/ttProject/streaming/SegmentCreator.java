@@ -2,8 +2,8 @@ package com.ttProject.streaming;
 
 import java.io.File;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
 
 /**
  * セグメントの作成クラスはにているところが結構あるので、abstractクラスにしてみました。
@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class SegmentCreator {
 	/** ロガー */
-	private final Logger logger = LoggerFactory.getLogger(SegmentCreator.class);
+//	private final Logger logger = LoggerFactory.getLogger(SegmentCreator.class);
 	/** 名前データ */
 	private String name;
 	/** 保存対象ディレクトリ */
@@ -52,7 +52,7 @@ public abstract class SegmentCreator {
 	 * @param file
 	 */
 	protected void doComment(String file) {
-		try {
+/*		try {
 			if(file == null) {
 				return;
 			}
@@ -63,7 +63,7 @@ public abstract class SegmentCreator {
 		}
 		catch (Exception e) {
 			logger.error("commandError", e);
-		}
+		}*/
 	}
 	/**
 	 * 名前を保存
