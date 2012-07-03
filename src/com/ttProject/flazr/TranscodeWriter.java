@@ -92,6 +92,7 @@ public class TranscodeWriter implements RtmpWriter {
 		if(EncodePropertyLoader.getJpegSegmentCreator() != null) {
 			jpegSegmentCreator = new JpegSegmentCreator();
 			jpegSegmentCreator.initialize(name);
+			jpegSegmentCreator.setMp3SegmentCreator(mp3SegmentCreator);
 		}
 		// takSegmenterの設定
 		if(EncodePropertyLoader.getTakSegmentCreator() != null) {
@@ -231,6 +232,9 @@ public class TranscodeWriter implements RtmpWriter {
 			if(takSegmentCreator != null) {
 				if(header.isVideo()) {
 					VideoTag videoTag = new VideoTag(flvAtom.encode().getByte(0));
+//					if(videoTag.isKeyFrame()) {
+//						logger.info("keyframe detected!");
+//					}
 					takSegmentCreator.writeTagData(buf, header.getTime(), videoTag.isKeyFrame());
 				}
 				else {
