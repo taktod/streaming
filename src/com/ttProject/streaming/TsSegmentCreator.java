@@ -84,7 +84,7 @@ public class TsSegmentCreator extends SegmentCreator{
 	public void reset() {
 		close();
 		// カウンターをリセットしておく。
-		counter = 0;
+		counter = 1;
 		nextStartPos = getDuration();
 		// outputStreamの準備をしておく。
 		try {

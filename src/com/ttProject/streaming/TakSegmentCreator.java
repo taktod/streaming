@@ -93,7 +93,7 @@ public class TakSegmentCreator extends SegmentCreator{
 	 */
 	private void reset() {
 		close();
-		counter = 0; // 0に戻す。
+		counter = 1; // 0に戻す。
 		firstTimestamp = -1; // タイムスタンプを未設置にしておく。
 		nextStartPos = getDuration();
 		try {

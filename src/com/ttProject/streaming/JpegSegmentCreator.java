@@ -6,6 +6,8 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.imageio.ImageIO;
 
@@ -43,6 +45,12 @@ public class JpegSegmentCreator extends SegmentCreator{
 	private static int duration;
 	/** データの一時置き場 */
 	private static String tmpPath;
+	/** シーケンス番号を保持しておくリスト */
+	private static List<String> list = new ArrayList<String>();
+	private Mp3SegmentCreator mp3SegmentCreator = null;
+	public void setMp3SegmentCreator(Mp3SegmentCreator mp3SegmentCreator) {
+		this.mp3SegmentCreator = mp3SegmentCreator;
+	}
 	/**
 	 * 1画像あたりの長さ指定
 	 */
@@ -120,7 +128,11 @@ public class JpegSegmentCreator extends SegmentCreator{
 	 * @param picture
 	 * @param timstamp
 	 */
-	public void makeFramePicture(IVideoPicture picture, long timestamp) {
+	public void makeFramePicture(IVideoPicture picture) {
+		if(mp3SegmentCreator == null) {
+			return;
+		}
+		int timestamp = mp3SegmentCreator.getPosition();
 		BufferedImage javaImage = null;
 		// 前回のデータとビデオサイズが変更になっている場合はコンバート用のオブジェクトを書き換える必要あり。
 		if(width == -1 || height == -1 || width != picture.getWidth() || height != picture.getHeight()) {
@@ -133,9 +145,36 @@ public class JpegSegmentCreator extends SegmentCreator{
 			if((int)(timestamp / 1000) != counter) {
 				// あたらしいイメージの処理にはいるので、画像を保存しておく。
 				ImageIO.write(outputImage, "jpeg", new File(getTmpTarget() + counter + ".jpg"));
+				// JPLの定義を構築する。
+				StringBuilder sb = new StringBuilder("#JPLINF:");
+				for(byte b : frameStatus) {
+					sb.append(b);
+				}
+				sb.append(":");
+				sb.append(counter);
+				sb.append(".jpg");
+				list.add(sb.toString());
+				if(list.size() >= 4) {
+					list = list.subList(1, 4);
+				}
 				// すでにおわったデータを書き込みます。
 				PrintWriter pw;
-				if(counter % 60 == 0) {
+				pw = new PrintWriter(new BufferedWriter(new FileWriter(getTmpTarget() + "index.jpl")));
+				pw.println("#JPLTAK");
+				// pw.println("#JPLTAKP");
+				pw.print("#JPL-X-MEDIASEQUENCE:");
+				// 現在のカウンター-3のデータを取り出したい。
+				int start = counter - 2;
+				if(start < 1) {
+					start = 1;
+				}
+				pw.println(start);
+				for(String data : list) {
+					pw.println(data);
+				}
+				pw.close();
+				pw = null;
+/*				if(counter % 60 == 0) {
 					// あたらしいデータの場合
 					pw = new PrintWriter(new BufferedWriter(new FileWriter(getTmpTarget() + "index.jpl", false)));
 					pw.print("#JPL-X-MEDIA-SEQUENCE:");
@@ -151,7 +190,7 @@ public class JpegSegmentCreator extends SegmentCreator{
 				pw.print(":");
 				pw.print(counter);
 				pw.println(".jpg");
-				pw.close();
+				pw.close();*/
 				counter = (int)timestamp / 1000;
 				outputImage = new BufferedImage(160, 1200, BufferedImage.TYPE_3BYTE_BGR);
 				resetFrameStatus();

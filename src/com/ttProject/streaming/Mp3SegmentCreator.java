@@ -30,7 +30,7 @@ public class Mp3SegmentCreator extends SegmentCreator{
 	/** 処理済みパケット数保持(パケット数から計算したら正確な進行時間が計算できるため。) */
 	private int decodedPackets = 0;
 	/** 1セグメントの長さ定義 */
-	private static int duration;
+	private static int duration = 2000; // とりあえず2秒固定
 	/** 一時保存場所定義 */
 	private static String tmpPath;
 	
@@ -44,7 +44,7 @@ public class Mp3SegmentCreator extends SegmentCreator{
 	 */
 	@Override
 	public void setDuration(int value) {
-		duration = value;
+//		duration = value;
 	}
 	/**
 	 * duration参照
@@ -102,18 +102,10 @@ public class Mp3SegmentCreator extends SegmentCreator{
 	 */
 	private void reset() {
 		close();
-		counter = 0;
+		counter = 1; // カウンターは1からにしておく。
 		decodedPackets = 0; // 処理済みパケット数の記録動作をリセットするのをわすれてた。
 		nextStartPos = getDuration();
 		try {
-			PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(getTmpTarget() + "index.m3u8", true)));
-			pw.println("#EXTM3U");
-			pw.println("#EXT-X-ALLOW-CACHE:NO"); // キャッシュするかどうかの指定
-			pw.print("#EXT-X-TARGETDURATION:"); // 何個前のデータから読み出すかの指定
-			pw.println((int)(getDuration() / 1000)); // この値は間違ってる。最低でも2以上いれないとだめっぽい。
-			pw.println("#EXT-X-MEDIA-SEQUENCE:0"); // このファイルの先頭がどこであるかの指定
-			pw.flush();
-			pw.close();
 			mp3File = new FileOutputStream(getTmpTarget() + counter + ".mp3");
 		}
 		catch (Exception e) {
@@ -135,41 +127,18 @@ public class Mp3SegmentCreator extends SegmentCreator{
 					mp3File.close();
 					// 出力用のm3u8ファイルの準備
 					// TODO hoge.m3u8固定になっているので、名前を変更しておきたい。
-					PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(getTmpTarget() + "index.m3u8", true)));
-/*					pw.println("#EXTM3U");
+					PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(getTmpTarget() + "index.m3u8", false)));
+					pw.println("#EXTM3U");
 					pw.println("#EXT-X-ALLOW-CACHE:NO");
-					pw.print("#EXT-X-TARGETDURATION:");
-					pw.println((int)(getDuration() / 1000));
-					if(counter - 2 >= 0) {
-						pw.print("#EXT-X-MEDIA-SEQUENCE:");
-						pw.println(counter - 2);
-						// この部分に、いままでのdurationすべてを含むデータをいれてやる必要がある。
-						pw.print("#EXTINF:");
-//						pw.println((int)(getDuration() / 1000)); // このdurationを正しい形にしておく。
-						pw.println((counter - 1) * (getDuration() / 1000)); // このdurationを正しい形にしておく。
-						pw.print(counter - 2);
-						pw.println(".mp3");
-//						pw.println("unknown.mp3");
-						pw.print("#EXTINF:");
-						pw.println((int)(getDuration() / 1000));
-						pw.print(counter - 1);
+					pw.println("#EXT-X-TARGETDURATION:2");
+					int start = 16 * (int)((counter - 3) / 16) + 1;
+					pw.print("#EXT-X-MEDIA-SEQUENCE:");
+					pw.println(start);
+					for(int i = start;i <= counter;i ++) {
+						pw.println("#EXTINF:2");
+						pw.print(i);
 						pw.println(".mp3");
 					}
-					else if(counter - 1 >= 0) { 
-						pw.print("#EXT-X-MEDIA-SEQUENCE:");
-						pw.println(counter - 1);
-						pw.print("#EXTINF:");
-						pw.println((int)(getDuration() / 1000));
-						pw.print(counter - 1);
-						pw.println(".mp3");
-					}
-					else {
-						pw.println("#EXT-X-MEDIA-SEQUENCE:0");
-					}*/
-					pw.print("#EXTINF:");
-					pw.println((int)(getDuration() / 1000));
-					pw.print(counter);
-					pw.println(".mp3");
 					pw.close();
 					pw = null;
 					// 次の切断場所を定義
@@ -212,7 +181,7 @@ public class Mp3SegmentCreator extends SegmentCreator{
 		}
 		// 現在までに消化したpacket数から正確なタイムスタンプをだして、設定されているタイムスタンプ以下になる場合は、前の部分に無音mp3を追記してやる。
 		fillNoSound(timestamp);
-		int position = (int)(decodedPackets * 11520 / 441);
+		int position = getPosition();
 		_writeSegment(buf, size, position);
 		decodedPackets ++;
 	}
@@ -235,8 +204,7 @@ public class Mp3SegmentCreator extends SegmentCreator{
 		// 自分のいる位置が、１パケット以上分の差がない場合は、無音パケットでうめなければ、いけない。
 		// (decodedPackets * 11520 / 441) // パケット量から換算する経過時間
 		while(true) { // 0.027秒以上余っている場合は、無音パケットが入る余地あり
-			int position = (int)(decodedPackets * 11520 / 441);
-//			if(timestamp - position <= 27) { // パケットの長さは正しくは0.026...になるのですが、たまに送れることがあるようなので余裕をみて0.03にしておきます。
+			int position = getPosition();
 			if(timestamp - position <= 30) {
 				break;
 			}
@@ -257,5 +225,8 @@ public class Mp3SegmentCreator extends SegmentCreator{
 				logger.error("ストリームを閉じる際にエラーが発生しました。", e);
 			}
 		}
+	}
+	public int getPosition() {
+		return (int)(decodedPackets * 11520 / 441);
 	}
 }
