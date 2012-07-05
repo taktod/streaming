@@ -227,6 +227,6 @@ public class Mp3SegmentCreator extends SegmentCreator{
 		}
 	}
 	public int getPosition() {
-		return (int)(decodedPackets * 11520 / 441);
+		return (int)(decodedPackets * 11520L / 441);
 	}
 }
