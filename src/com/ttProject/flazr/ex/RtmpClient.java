@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import com.flazr.rtmp.client.ClientOptions;
 import com.flazr.util.Utils;
+import com.ttProject.flazr.TranscodeWriter;
 
 public class RtmpClient {
 	/** ロガー */

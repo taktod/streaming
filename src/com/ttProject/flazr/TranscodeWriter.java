@@ -1,4 +1,4 @@
-package com.ttProject.flazr.ex;
+package com.ttProject.flazr;
 
 import java.nio.ByteBuffer;
 

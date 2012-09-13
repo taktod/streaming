@@ -13,6 +13,7 @@ import com.flazr.rtmp.client.ClientHandler;
 import com.flazr.rtmp.client.ClientOptions;
 import com.flazr.rtmp.message.Command;
 import com.flazr.rtmp.message.MessageType;
+import com.ttProject.flazr.TranscodeWriter;
 
 /**
  * クライアント動作を修正
