@@ -28,4 +28,17 @@ public class TakManager extends MediaManager{
 		// 属性として、nodeがrawdata = trueをもっている場合はエンコードなしの動作になります。
 		isRawStream = "true".equalsIgnoreCase(DomHelper.getNodeValue(node, "rawdata"));
 	}
+	/**
+	 * 生データのストリーミングがあるかどうか
+	 * @return
+	 */
+	public boolean isRawStream() {
+		return this.isRawStream;
+	}
+	/**
+	 * コンバート動作のセットアップを実行しておく。
+	 */
+	public void setup() {
+		// 生データの場合は、handlerをつくっておき、データをうけとったら、そのままhandlerに流すという処置が必要。
+	}
 }

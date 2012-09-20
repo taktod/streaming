@@ -12,6 +12,8 @@ import com.xuggle.xuggler.io.IURLProtocolHandler;
 public class TakHandler implements IURLProtocolHandler {
 	/** ロガー */
 	private final Logger logger = LoggerFactory.getLogger(TakHandler.class);
+	/** takStreamingの出力先 */
+	private String outputDirectory;
 	@Override
 	public int close() {
 		return 0;

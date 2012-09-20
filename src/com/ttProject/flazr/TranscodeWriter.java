@@ -10,6 +10,7 @@ import com.flazr.io.flv.FlvAtom;
 import com.flazr.rtmp.RtmpHeader;
 import com.flazr.rtmp.RtmpMessage;
 import com.flazr.rtmp.RtmpWriter;
+import com.ttProject.xuggle.ConvertManager;
 
 /**
  * 受け取ったデータをxuggleに送り込むRtmpWriter(flv形式で保存されていきます。)
@@ -28,12 +29,8 @@ public class TranscodeWriter implements RtmpWriter {
 	/** 動作名 */
 	private final String name;
 
-	/** takSegmenterのためにaudioとvideoの第一パケットは保持しておかなければいけない。 */
-//	private ByteBuffer firstAudioPacket = null;
-//	private ByteBuffer firstVideoPacket = null;
-
-	/** 変換動作スレッド */
-//	private Thread transcodeThread = null;
+	/** 変換動作管理マネージャー */
+	private ConvertManager convertManager;
 	
 	/** 開始時の動作タイムスタンプ */
 	private int startTime = -1;
@@ -52,8 +49,7 @@ public class TranscodeWriter implements RtmpWriter {
 		close();
 		
 		// 初期化する。
-		
-		// 変換用のスレッドを作成しておく。
+		initialize();
 	}
 	/**
 	 * 放送が停止したときの動作
@@ -67,9 +63,8 @@ public class TranscodeWriter implements RtmpWriter {
 	 */
 	public void initialize() {
 		try {
-//			firstAudioPacket = null;
-//			firstVideoPacket = null;
-			
+			convertManager = ConvertManager.getInstance();
+			convertManager.initialize(name);
 			startTime = -1;
 		}
 		catch (Exception e) {

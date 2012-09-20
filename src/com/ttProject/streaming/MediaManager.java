@@ -28,6 +28,8 @@ public abstract class MediaManager {
 	private final Map<IStreamCoder.Flags, Boolean> videoFlags = new HashMap<IStreamCoder.Flags, Boolean>();
 	/** 参照先のデータを保持しておく必要あり。 */
 	private final Node node;
+	/** 出力ディレクトリ設定 */
+	private String directory;
 	
 	/** 音声まわりの設定 */
 	/**
@@ -165,6 +167,7 @@ public abstract class MediaManager {
 		for(int i = 0;i < node.getChildNodes().getLength();i ++) {
 			analize(node.getChildNodes().item(i));
 		}
+		directory = DomHelper.getNodeValue(node, "directory");
 	}
 	private void analize(Node node) {
 		String nodeName = node.getNodeName();
