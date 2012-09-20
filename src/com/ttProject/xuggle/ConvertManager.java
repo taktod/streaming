@@ -45,6 +45,8 @@ public class ConvertManager {
 	 */
 	private void initialize() {
 		// encode.xmlから必要な情報を抜き出しておく。
+		EncodeXmlAnalizer analizer = EncodeXmlAnalizer.getInstance();
+		analizer.getManagers(); // 作成された、MediaManagerリストを取得する
 
 		// 生データのtakStreamingをつくるかどうか確認する。
 		// 作る必要があるなら、処理を追加する。
