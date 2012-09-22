@@ -3,6 +3,8 @@ package com.ttProject.streaming;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -20,6 +22,8 @@ import com.xuggle.xuggler.SimpleMediaFile;
  * @author todatakahiko
  */
 public abstract class MediaManager {
+	/** ロガー */
+	private final Logger logger = LoggerFactory.getLogger(MediaManager.class);
 	/** 出力用のストリーム情報の保持 */
 	private final ISimpleMediaFile streamInfo = new SimpleMediaFile();
 	/** ffmpegに渡すvideo用のプロパティの詳細 */
@@ -36,7 +40,7 @@ public abstract class MediaManager {
 	 * 音声の有無確認
 	 */
 	public void setHasAudio(Boolean flg) {
-		System.out.println("hasAudio:" + flg);
+		logger.info("hasAudio:" + flg);
 		streamInfo.setHasAudio(flg);
 	}
 	/**
@@ -44,7 +48,7 @@ public abstract class MediaManager {
 	 * @param bitRate
 	 */
 	public void setAudioBitRate(int bitRate) {
-		System.out.println("AudioBitRate:" + bitRate);
+		logger.info("AudioBitRate:" + bitRate);
 		streamInfo.setAudioBitRate(bitRate);
 	}
 	/**
@@ -52,7 +56,7 @@ public abstract class MediaManager {
 	 * @param channels
 	 */
 	public void setAudioChannels(int channels) {
-		System.out.println("audioChannels:" + channels);
+		logger.info("audioChannels:" + channels);
 		streamInfo.setAudioChannels(channels);
 	}
 	/**
@@ -60,7 +64,7 @@ public abstract class MediaManager {
 	 * @param sampleRate
 	 */
 	public void setAudioSampleRate(int sampleRate) {
-		System.out.println("audioSampleRate:" + sampleRate);
+		logger.info("audioSampleRate:" + sampleRate);
 		streamInfo.setAudioSampleRate(sampleRate);
 	}
 	/**
@@ -69,10 +73,11 @@ public abstract class MediaManager {
 	 */
 	public void setAudioCodec(String codecName) {
 		try {
-			System.out.println("audioCodec:" + codecName);
-			streamInfo.setAudioCodec(ICodec.ID.valueOf(codecName));
+			logger.info("audioCodec:" + codecName);
+			streamInfo.setAudioCodec(ICodec.ID.valueOf("CODEC_ID_" + codecName.toUpperCase()));
 		}
 		catch (Exception e) {
+			logger.error("audioCodec取得ミス", e);
 		}
 	}
 	/** 動画まわりの設定 */
@@ -80,7 +85,7 @@ public abstract class MediaManager {
 	 * 映像の有無
 	 */
 	public void setHasVideo(Boolean flg) {
-		System.out.println("hasVideo:" + flg);
+		logger.info("hasVideo:" + flg);
 		streamInfo.setHasVideo(flg);
 	}
 	/**
@@ -88,7 +93,7 @@ public abstract class MediaManager {
 	 * @param width
 	 */
 	public void setVideoWidth(int width) {
-		System.out.println("videoWidth:" + width);
+		logger.info("videoWidth:" + width);
 		streamInfo.setVideoWidth(width);
 	}
 	/**
@@ -96,7 +101,7 @@ public abstract class MediaManager {
 	 * @param height
 	 */
 	public void setVideoHeight(int height) {
-		System.out.println("videoHeight:" + height);
+		logger.info("videoHeight:" + height);
 		streamInfo.setVideoHeight(height);
 	}
 	/**
@@ -104,7 +109,7 @@ public abstract class MediaManager {
 	 * @param bitRate
 	 */
 	public void setVideoBitRate(int bitRate) {
-		System.out.println("videoBitRate:" + bitRate);
+		logger.info("videoBitRate:" + bitRate);
 		streamInfo.setVideoBitRate(bitRate);
 	}
 	/**
@@ -113,7 +118,7 @@ public abstract class MediaManager {
 	 * @param frameRate
 	 */
 	public void setVideoFrameRate(int frameRate) {
-		System.out.println("videoFrameRate:" + frameRate);
+		logger.info("videoFrameRate:" + frameRate);
 		streamInfo.setVideoFrameRate(IRational.make(1, frameRate));
 	}
 	/**
@@ -121,7 +126,7 @@ public abstract class MediaManager {
 	 * @param quality
 	 */
 	public void setVideoGlobalQuality(int quality) {
-		System.out.println("videoGlobalQuality:" + quality);
+		logger.info("videoGlobalQuality:" + quality);
 		streamInfo.setVideoGlobalQuality(quality);
 	}
 	/**
@@ -130,10 +135,11 @@ public abstract class MediaManager {
 	 */
 	public void setVideoCodec(String codecName) {
 		try {
-			System.out.println("videoCodec:" + codecName);
-			streamInfo.setVideoCodec(ICodec.ID.valueOf(codecName));
+			logger.info("videoCodec:" + codecName);
+			streamInfo.setVideoCodec(ICodec.ID.valueOf("CODEC_ID_" + codecName.toUpperCase()));
 		}
 		catch (Exception e) {
+			logger.error("videoCodec取得ミス", e);
 		}
 	}
 	/**
@@ -172,13 +178,13 @@ public abstract class MediaManager {
 	private void analize(Node node) {
 		String nodeName = node.getNodeName();
 		if(nodeName.equalsIgnoreCase("audio")) {
-			System.out.println("  audio");
+			logger.info("  audio");
 			// 各audio要素があるか確認して、あれば、設定する。
 			setHasAudio(true);
 			setupAudio(node);
 		}
 		else if(nodeName.equalsIgnoreCase("video")) {
-			System.out.println("  video");
+			logger.info("  video");
 			setHasVideo(true);
 			setupVideo(node);
 		}
@@ -208,16 +214,16 @@ public abstract class MediaManager {
 			return;
 		}
 		if("properties".equalsIgnoreCase(name)) {
-			System.out.println("properties");
+			logger.info("properties");
 			// nodeのさらに子要素について調査する必要あり
 			setupProperties(node);
-			System.out.println(videoProperties);
+			logger.info("{}", videoProperties);
 		}
 		if("flags".equalsIgnoreCase(name)) {
-			System.out.println("flags");
+			logger.info("flags");
 			// nodeのさらに子要素について調査する必要あり
 			setupFlags(node);
-			System.out.println(videoFlags);
+			logger.info("{}", videoFlags);
 		}
 		if(value == null || value.trim().equals("")) {
 			// 設定値がない場合は、無視する。

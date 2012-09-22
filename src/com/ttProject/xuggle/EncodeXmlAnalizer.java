@@ -7,6 +7,8 @@ import java.util.List;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -22,6 +24,8 @@ import com.ttProject.streaming.webm.WebMManager;
  * @author taktod
  */
 public class EncodeXmlAnalizer {
+	/** ロガー */
+	private final Logger logger = LoggerFactory.getLogger(EncodeXmlAnalizer.class);
 	/** シングルトンインスタンス */
 	private static EncodeXmlAnalizer instance = new EncodeXmlAnalizer();
 	/** マネージャーリスト */
@@ -50,7 +54,7 @@ public class EncodeXmlAnalizer {
 			Node root = builder.parse(new File("encode.xml"));
 			String nodeName = root.getFirstChild().getNodeName();
 			if(!nodeName.equals("streaming")) {
-				System.out.println("streamingのxmlではない。");
+				logger.info("streamingのxmlではない。");
 			}
 			// 内容を解析しておく。
 			NodeList data = root.getFirstChild().getChildNodes();
@@ -75,15 +79,15 @@ public class EncodeXmlAnalizer {
 		// ストリーム定義
 		else if(nodeName.equalsIgnoreCase("tak")) {
 			// takのみ属性として、rawDataというのが許されます。
-			System.out.println("tak");
+			logger.info("tak");
 			managers.add(new TakManager(node));
 		}
 		else if(nodeName.equalsIgnoreCase("hls")) {
-			System.out.println("hls");
+			logger.info("hls");
 			managers.add(new HlsManager(node));
 		}
 		else if(nodeName.equalsIgnoreCase("webM")) {
-			System.out.println("webm");
+			logger.info("webm");
 			managers.add(new WebMManager(node));
 		}
 	}
@@ -118,14 +122,14 @@ public class EncodeXmlAnalizer {
 			// オーディオプロパティ
 		}
 		System.out.print(space);
-		System.out.println(node.getNodeName());
+		logger.info(node.getNodeName());
 		NamedNodeMap attributes = node.getAttributes();
 		// 属性を検索
 		if(attributes != null) {
 			for(int i=0;i < attributes.getLength();i ++) {
 				Node item = attributes.item(i);
 				System.out.print(space);
-				System.out.println(item.getNodeName() + ":" + item.getNodeValue());
+				logger.info(item.getNodeName() + ":" + item.getNodeValue());
 			}
 		}
 		// 子要素を検索
@@ -135,7 +139,7 @@ public class EncodeXmlAnalizer {
 				Node item = children.item(i);
 				switch(item.getNodeType()) {
 				case Node.ELEMENT_NODE:
-//					System.out.println(item.getNodeName());
+//					logger.info(item.getNodeName());
 					check2(item, space + "  ");
 					break;
 				case Node.TEXT_NODE:
@@ -144,7 +148,7 @@ public class EncodeXmlAnalizer {
 					}
 					System.out.print(space);
 					System.out.print("data:");
-					System.out.println(item.getNodeValue());
+					logger.info(item.getNodeValue());
 					break;
 				default:
 					break;
@@ -154,14 +158,14 @@ public class EncodeXmlAnalizer {
 	}
 	private void check2_bku(Node node, String space) {
 		System.out.print(space);
-		System.out.println(node.getNodeName());
+		logger.info(node.getNodeName());
 		NamedNodeMap attributes = node.getAttributes();
 		// 属性を検索
 		if(attributes != null) {
 			for(int i=0;i < attributes.getLength();i ++) {
 				Node item = attributes.item(i);
 				System.out.print(space);
-				System.out.println(item.getNodeName() + ":" + item.getNodeValue());
+				logger.info(item.getNodeName() + ":" + item.getNodeValue());
 			}
 		}
 		// 子要素を検索
@@ -171,7 +175,7 @@ public class EncodeXmlAnalizer {
 				Node item = children.item(i);
 				switch(item.getNodeType()) {
 				case Node.ELEMENT_NODE:
-//					System.out.println(item.getNodeName());
+//					logger.info(item.getNodeName());
 					check2(item, space + "  ");
 					break;
 				case Node.TEXT_NODE:
@@ -180,7 +184,7 @@ public class EncodeXmlAnalizer {
 					}
 					System.out.print(space);
 					System.out.print("data:");
-					System.out.println(item.getNodeValue());
+					logger.info(item.getNodeValue());
 					break;
 				default:
 					break;

@@ -57,6 +57,7 @@ public class ConvertManager {
 		boolean needConvert = false;
 		// managerの内容を確認する。
 		for(MediaManager manager : mediaManagers) {
+			manager.analize();
 			if(manager instanceof TakManager) {
 				TakManager takManager = (TakManager)manager;
 				if(takManager.isRawStream()) {
