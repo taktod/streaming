@@ -401,4 +401,7 @@ public abstract class MediaManager {
 	public Map<IStreamCoder.Flags, Boolean> getVideoFlags() {
 		return videoFlags;
 	}
+	public String getDirectory() {
+		return directory;
+	}
 }
