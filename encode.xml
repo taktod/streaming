@@ -28,9 +28,10 @@
 		<flags>
 			<FLAG_LOOP_FILTER>true</FLAG_LOOP_FILTER>
 			<FLAG_CLOSED_GOP>true</FLAG_CLOSED_GOP>
-			<FLAG2_FASTPSKIP>true</FLAG2_FASTPSKIP>
-			<FLAG2_WPRED>false</FLAG2_WPRED>
-			<FLAG2_8X8DCT>false</FLAG2_8X8DCT>
+			<FLAG2_FAST>true</FLAG2_FAST>
+<!--定義が存在しないっぽい。			<FLAG2_FASTPSKIP>true</FLAG2_FASTPSKIP>-->
+<!--定義が存在しないっぽい。			<FLAG2_WPRED>false</FLAG2_WPRED>-->
+<!--定義が存在しないっぽい。			<FLAG2_8X8DCT>false</FLAG2_8X8DCT>-->
 		</flags>
 	</preset>
 	<tak rawdata="true"><!-- 生データ -->
