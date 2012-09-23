@@ -5,9 +5,6 @@ import org.w3c.dom.Node;
 import com.ttProject.streaming.MediaManager;
 import com.ttProject.util.DomHelper;
 import com.ttProject.xuggle.ConvertManager;
-import com.xuggle.xuggler.IContainer;
-import com.xuggle.xuggler.IContainerFormat;
-import com.xuggle.xuggler.ISimpleMediaFile;
 
 /**
  * コンバートの動作を管理するManager
