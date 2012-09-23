@@ -4,7 +4,10 @@ import org.w3c.dom.Node;
 
 import com.ttProject.streaming.MediaManager;
 import com.ttProject.util.DomHelper;
+import com.ttProject.xuggle.ConvertManager;
 import com.xuggle.xuggler.IContainer;
+import com.xuggle.xuggler.IContainerFormat;
+import com.xuggle.xuggler.ISimpleMediaFile;
 
 /**
  * コンバートの動作を管理するManager
@@ -16,7 +19,6 @@ import com.xuggle.xuggler.IContainer;
 public class TakManager extends MediaManager{
 	/** rawStreamがtrueの場合は生入力データをそのままTakHandlerに渡しています。 */
 	private boolean isRawStream = false;
-	private IContainer container = null;
 	private TakHandler handler; // 処理Handler
 	/**
 	 * nodeからデータを解析してマネージャーを作成します。
@@ -38,7 +40,22 @@ public class TakManager extends MediaManager{
 	/**
 	 * コンバート動作のセットアップを実行しておく。
 	 */
-	public void setup() {
-		// 生データの場合は、handlerをつくっておき、データをうけとったら、そのままhandlerに流すという処置が必要。
+	@Override
+	public boolean setup() {
+		// ここで実行することは、streamURLの登録とcontainerを開くこと(コンテナを開く動作はしなくてもいいかも)
+		handler = new TakHandler(); // handlerをつくっておく。
+		if(!isRawStream()) {
+			// 生ストリームでない場合はTakHandlerの登録とFactoryの作成が必要。
+			TakHandlerFactory factory = TakHandlerFactory.getFactory();
+			ConvertManager convertManager = ConvertManager.getInstance();
+			factory.registerHandler(convertManager.getName() + "_" + getName(), handler);
+		}
+		return true;
+	}
+	@Override
+	public boolean resetupContainer() {
+		ConvertManager convertManager = ConvertManager.getInstance();
+		String url = TakHandlerFactory.DEFAULT_PROTOCOL + ":" + convertManager.getName() + "_" + getName();
+		return resetupContainer(url, "flv");
 	}
 }
