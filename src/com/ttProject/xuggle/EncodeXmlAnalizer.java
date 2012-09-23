@@ -9,7 +9,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
@@ -55,6 +54,7 @@ public class EncodeXmlAnalizer {
 			String nodeName = root.getFirstChild().getNodeName();
 			if(!nodeName.equals("streaming")) {
 				logger.info("streamingのxmlではない。");
+				throw new RuntimeException("encode.xmlの内容がstreamingのものではありませんので、動作を停止します。");
 			}
 			// 内容を解析しておく。
 			NodeList data = root.getFirstChild().getChildNodes();
