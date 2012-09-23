@@ -1,7 +1,5 @@
 package com.ttProject.flazr;
 
-import java.nio.ByteBuffer;
-
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,23 +109,9 @@ public class TranscodeWriter implements RtmpWriter {
 		}
 		// 内部の時間設定をずらしておきます。
 		header.setTime(header.getTime() - startTime);
-		try {
-			ByteBuffer buf = flvAtom.write().toByteBuffer();
-/*			if(header.isVideo() && firstVideoPacket == null) {
-				firstVideoPacket = buf.duplicate();
-				firstVideoPacket.position(4);
-				firstVideoPacket.putInt(0);
-				firstVideoPacket.rewind();
-			}
-			else if(header.isAudio() && firstAudioPacket == null) {
-				firstAudioPacket = buf.duplicate();
-				firstAudioPacket.position(4);
-				firstAudioPacket.putInt(0);
-				firstAudioPacket.rewind();
-			}*/
-		}
-		catch (Exception e) {
-		}
+		// このコンバートにそった状態になったところで、コンバート管理にデータをまわす。
+		// 管理側でflvの情報を抜き出したりすると思うのでまだflazrの影響下においておく。
+		convertManager.writeData(flvAtom);
 	}
 	/**
 	 * 終了動作呼び出し
