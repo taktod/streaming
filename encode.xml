@@ -35,10 +35,10 @@
 		</flags>
 	</preset>
 	<tak rawdata="true"><!-- 生データ -->
-		<directory>~/www/tak/raw/</directory>
+		<name>raw</name>
 	</tak>
 	<tak>
-		<directory>~/www/tak/1024/</directory>
+		<name>1024</name>
 		<video>
 			<codec>h264</codec>
 			<width>1024</width>
@@ -55,7 +55,7 @@
 		</audio>
 	</tak>
 	<tak>
-		<directory>~/www/tak/800/</directory>
+		<name>800</name>
 		<video>
 			<codec>h264</codec>
 			<width>800</width>
@@ -72,7 +72,7 @@
 		</audio>
 	</tak>
 	<tak>
-		<directory>~/www/tak/640/</directory>
+		<name>640</name>
 		<video>
 			<codec>h264</codec>
 			<width>640</width>
@@ -89,7 +89,7 @@
 		</audio>
 	</tak>
 	<tak>
-		<directory>~/www/tak/320/</directory>
+		<name>320</name>
 		<video>
 			<codec>h264</codec>
 			<width>320</width>
@@ -106,7 +106,7 @@
 		</audio>
 	</tak>
 	<tak>
-		<directory>~/www/tak/160/</directory>
+		<name>160</name>
 		<video>
 			<codec>h264</codec>
 			<width>160</width>
@@ -123,7 +123,7 @@
 		</audio>
 	</tak>
 	<hls>
-		<directory>~/www/hls/640/</directory>
+		<name>640</name>
 		<video>
 			<codec>h264</codec>
 			<width>640</width>
@@ -140,7 +140,7 @@
 		</audio>
 	</hls>
 	<hls>
-		<directory>~/www/hls/320/</directory>
+		<name>320</name>
 		<video>
 			<codec>h264</codec>
 			<width>320</width>
@@ -157,7 +157,7 @@
 		</audio>
 	</hls>
 	<hls>
-		<directory>~/www/hls/160/</directory>
+		<name>160</name>
 		<video>
 			<codec>h264</codec>
 			<width>160</width>
@@ -174,7 +174,7 @@
 		</audio>
 	</hls>
 	<webM>
-		<directory>~/www/webm/640/</directory>
+		<name>640</name>
 		<video>
 			<codec>vp8</codec>
 			<width>640</width>
@@ -190,7 +190,7 @@
 		</audio>
 	</webM>
 	<webM>
-		<directory>~/www/webm/320/</directory>
+		<name>320</name>
 		<video>
 			<codec>vp8</codec>
 			<width>320</width>
