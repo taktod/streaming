@@ -1,12 +1,11 @@
 package com.ttProject.xuggle;
 
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
+import com.flazr.io.flv.FlvAtom;
 import com.ttProject.streaming.MediaManager;
 import com.ttProject.streaming.tak.TakManager;
-import com.ttProject.xuggle.flv.FlvDataQueue;
+import com.ttProject.xuggle.flv.FlvManager;
 
 /**
  * コンバート動作を管理するマネージャー
@@ -24,15 +23,17 @@ public class ConvertManager {
 	private static final ConvertManager instance = new ConvertManager();
 	/** 名前保持 */
 	private String name;
-	/** 動作queue */
-	private FlvDataQueue queue;
+	public String getName() {
+		return name;
+	}
 	/** 生データのtakStreaming用のmanager */
 	private TakManager rawTakManager = null;
+	/** コンバート用のflvManager */
+	private FlvManager flvManager = null;
 	/**
 	 * コンストラクタ
 	 */
-	private ConvertManager() {
-	}
+	private ConvertManager() {}
 	/**
 	 * シングルトンのインスタンス取得
 	 * @return
@@ -57,12 +58,15 @@ public class ConvertManager {
 		boolean needConvert = false;
 		// managerの内容を確認する。
 		for(MediaManager manager : mediaManagers) {
-			manager.analize();
+			// 内容の構築をすすめる。
+			manager.analize(); // xmlに内容からデータを構築する。
+			manager.setup(); // handlerのオープンを実行(コンテナは別で実行します。)
 			if(manager instanceof TakManager) {
 				TakManager takManager = (TakManager)manager;
 				if(takManager.isRawStream()) {
 					// 生データのストリーミングが存在する。
 					rawTakManager = takManager;
+					continue;
 				}
 				else {
 					needConvert = true;
@@ -77,12 +81,37 @@ public class ConvertManager {
 			return;
 		}
 		// コンバートを実行する必要がある。
-		// flvデータを保持するqueueが必要。
 		// FlvManagerをつくる。
+		flvManager = new FlvManager();
 		// AudioResampleManagerをつくる。(変換必須数をしらべてつくる。)
 		// VideoResampleManagerをつくる。(変換必須数をしらべてつくる。)
 		// AudioEncodeManagerをつくる。
 		// VideoEncodeManagerをつくる。
 		// 出力コンテナもつくる。
+		// この時点で入力変換用のthreadをつくる必要がある。
+		// 要するにTranscoderの部分
+		// 実際の内部の初期化は、inputContainerを開く部分は入力変換用のthereadの冒頭
+		// 出力コンテナの部分は、入力メディアデータのうち対象のデータをうけとった瞬間に実行(もしくは再構築)する。
+	}
+	/**
+	 * 関連づいている出力コンテナを再初期化する。
+	 * @param audio 音声があるかフラグ
+	 * @param video 映像があるかフラグ
+	 */
+	public void resetupOutputContainer(boolean audioFlg, boolean videoFlg) {
+		
+	}
+	/**
+	 * flvデータをサーバーから受け取ったときの動作
+	 * @param flvAtom
+	 */
+	public void writeData(FlvAtom flvAtom) {
+		if(rawTakManager != null) {
+			// そのままのデータをhttpTakStreamingにする動作がのこっている場合はそこにデータを投げるようにしておく。
+		}
+		// コンバート動作にflvデータをまわす。
+		if(flvManager != null) {
+			flvManager.writeData(flvAtom);
+		}
 	}
 }
