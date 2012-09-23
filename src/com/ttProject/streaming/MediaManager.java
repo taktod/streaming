@@ -11,6 +11,8 @@ import org.w3c.dom.NodeList;
 
 import com.ttProject.util.DomHelper;
 import com.xuggle.xuggler.ICodec;
+import com.xuggle.xuggler.IContainer;
+import com.xuggle.xuggler.IContainerFormat;
 import com.xuggle.xuggler.IRational;
 import com.xuggle.xuggler.ISimpleMediaFile;
 import com.xuggle.xuggler.IStreamCoder;
@@ -30,10 +32,26 @@ public abstract class MediaManager {
 	private final Map<String, String> videoProperties = new HashMap<String, String>();
 	/** ffmpegに渡すvideo用のフラグデータの詳細 */
 	private final Map<IStreamCoder.Flags, Boolean> videoFlags = new HashMap<IStreamCoder.Flags, Boolean>();
+	/** コンテナデータ */
+	private IContainer container = null;
+	/**
+	 * コンテナデータの設定
+	 * @param container
+	 */
+	protected void setContainer(IContainer container) {
+		this.container = container;
+	}
+	/**
+	 * コンテナデータの参照
+	 * @return
+	 */
+	protected IContainer getContainer() {
+		return container;
+	}
 	/** 参照先のデータを保持しておく必要あり。 */
 	private final Node node;
 	/** 出力ディレクトリ設定 */
-	private String directory;
+	private String name;
 	
 	/** 音声まわりの設定 */
 	/**
@@ -173,7 +191,7 @@ public abstract class MediaManager {
 		for(int i = 0;i < node.getChildNodes().getLength();i ++) {
 			analize(node.getChildNodes().item(i));
 		}
-		directory = DomHelper.getNodeValue(node, "directory");
+		name = DomHelper.getNodeValue(node, "name");
 	}
 	private void analize(Node node) {
 		String nodeName = node.getNodeName();
@@ -396,8 +414,31 @@ public abstract class MediaManager {
 		}
 	}
 	/** 以下抽象メソッド */
-//	public abstract boolean test();
+	/**
+	 * コンバート動作のセットアップを実行する。
+	 */
+	public abstract boolean setup();
+	/**
+	 * コンテナを開き直す動作
+	 * @param audioFlg 音声があるかどうか
+	 * @param videoFlg 映像があるかどうか
+	 * @return
+	 */
+	public abstract boolean resetupContainer();
 	/** 以下取得用 */
+	public boolean resetupContainer(String url, String ext) {
+		int retval = -1;
+		IContainer container = IContainer.make();
+		ISimpleMediaFile outputInfo = getStreamInfo();
+		outputInfo.setURL(url);
+		IContainerFormat outputFormat = IContainerFormat.make();
+		outputFormat.setOutputFormat(ext, url, null);
+		retval = container.open(url, IContainer.Type.WRITE, outputFormat);
+		if(retval < 0) {
+			throw new RuntimeException("出力用のURLを開くことができませんでした。:" + url);
+		}
+		return false;
+	}
 	public ISimpleMediaFile getStreamInfo() {
 		return streamInfo;
 	}
@@ -407,7 +448,20 @@ public abstract class MediaManager {
 	public Map<IStreamCoder.Flags, Boolean> getVideoFlags() {
 		return videoFlags;
 	}
-	public String getDirectory() {
-		return directory;
+	/**
+	 * このストリームにつけられた固有の名前
+	 * @return
+	 */
+	public String getName() {
+		return name;
+	}
+	/**
+	 * コンテナを閉じる
+	 */
+	public void close() {
+		if(container == null) {
+			container.close();
+			container = null;
+		}
 	}
 }
