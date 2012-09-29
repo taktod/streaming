@@ -6,6 +6,8 @@ import com.flazr.io.flv.FlvAtom;
 import com.ttProject.streaming.MediaManager;
 import com.ttProject.streaming.tak.TakManager;
 import com.ttProject.xuggle.flv.FlvManager;
+import com.xuggle.xuggler.IAudioSamples;
+import com.xuggle.xuggler.IVideoPicture;
 
 /**
  * コンバート動作を管理するマネージャー
@@ -30,6 +32,13 @@ public class ConvertManager {
 	private TakManager rawTakManager = null;
 	/** コンバート用のflvManager */
 	private FlvManager flvManager = null;
+	public FlvManager getFlvManager() {
+		return flvManager;
+	}
+	/** 変換処理の実行内容 */
+	private Transcoder transcoder = null;
+	/** 変換処理を実行Thread */
+	private Thread transcodeThread = null;
 	/**
 	 * コンストラクタ
 	 */
@@ -92,6 +101,10 @@ public class ConvertManager {
 		// 要するにTranscoderの部分
 		// 実際の内部の初期化は、inputContainerを開く部分は入力変換用のthereadの冒頭
 		// 出力コンテナの部分は、入力メディアデータのうち対象のデータをうけとった瞬間に実行(もしくは再構築)する。
+		transcoder = new Transcoder();
+		transcodeThread = new Thread(transcoder);
+		transcodeThread.setDaemon(true);
+		transcodeThread.start();
 	}
 	/**
 	 * 関連づいている出力コンテナを再初期化する。
@@ -113,5 +126,15 @@ public class ConvertManager {
 		if(flvManager != null) {
 			flvManager.writeData(flvAtom);
 		}
+	}
+	public void executeAudio(IAudioSamples decodedSamples) {
+		// データをリサンプルする。
+		// エンコードする
+		// 出力コンテナに渡す
+	}
+	public void executeVideo(IVideoPicture decodedPicture) {
+		// データをリサンプルする。
+		// エンコードする
+		// 出力コンテナに渡す
 	}
 }
