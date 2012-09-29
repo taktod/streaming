@@ -2,15 +2,21 @@ package com.ttProject.xuggle.flv;
 
 import java.nio.ByteBuffer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.flazr.io.flv.FlvAtom;
 import com.ttProject.xuggle.ConvertManager;
+import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IContainerFormat;
+import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.IPacket;
 import com.xuggle.xuggler.ISimpleMediaFile;
 import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IStreamCoder;
+import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.SimpleMediaFile;
 
 /**
@@ -21,17 +27,13 @@ import com.xuggle.xuggler.SimpleMediaFile;
  * ここでは元ファイル -> データ取得の部分を担当
  */
 public class FlvManager {
+	/** 動作ロガー */
+	private final Logger logger = LoggerFactory.getLogger(FlvManager.class);
 	private IContainer inputContainer = null;
 	private IStreamCoder inputAudioCoder = null;
 	private IStreamCoder inputVideoCoder = null;
 	private int audioStreamId = -1;
-	public int getAudioStreamId() {
-		return audioStreamId;
-	}
 	private int videoStreamId = -1;
-	public int getVideoStreamId() {
-		return videoStreamId;
-	}
 	private FlvDataQueue inputDataQueue = null;
 	
 	public FlvManager() {
@@ -90,7 +92,7 @@ public class FlvManager {
 	 * 
 	 * この処理はループでまわっているthread(入力thread)で実行する動作
 	 */
-	public boolean checkInputCoder(IPacket packet) {
+	private boolean checkInputCoder(IPacket packet) {
 		IStream stream = inputContainer.getStream(packet.getStreamIndex());
 		if(stream == null) {
 			// ストリームが取得できませんでした。(欠損しているデータがある場合があるので、発生してもおかしくないです。)
@@ -155,5 +157,105 @@ public class FlvManager {
 			return false;
 		}
 		return true;
+	}
+	/**
+	 * 閉じます。
+	 */
+	public void close() {
+		if(inputAudioCoder != null) {
+			inputAudioCoder.close();
+			inputAudioCoder = null;
+		}
+		if(inputVideoCoder != null) {
+			inputVideoCoder.close();
+			inputVideoCoder = null;
+		}
+		if(inputContainer != null) {
+			inputContainer.close();
+			inputContainer = null;
+		}
+	}
+	/**
+	 * コンバート処理をはじめる。
+	 * @param target
+	 * @return
+	 */
+	public boolean execute(IPacket packet) {
+		int retval = -1;
+		// 入力コンテナからデータを引き出す。
+		retval = inputContainer.readNextPacket(packet);
+		if(retval < 0) {
+			logger.error("パケット取得エラー: {}, {}", IError.make(retval), retval);
+			if("Resource temporarily unavailable".equals(IError.make(retval).getDescription())) {
+				// リソースが一時的にない場合は、このまま続けていれば動作可能になるので、スルーする。
+				return true;
+			}
+			return false;
+		}
+		// 入力コーダーを確認します。
+		if(!checkInputCoder(packet)) {
+			// 処理すべきコーダーでなかった。
+			return true;
+		}
+		int index = packet.getStreamIndex();
+		if(index == audioStreamId) {
+			executeAudio(packet);
+		}
+		else if(index == videoStreamId) {
+			executeVideo(packet);
+		}
+		else {
+			// ここは一応dead code.
+			return false;
+		}
+		return true;
+	}
+	/**
+	 * 音声の処理を実施する。
+	 * @param targetPacket
+	 */
+	private void executeAudio(IPacket targetPacket) {
+		int retval = -1;
+		IAudioSamples inSamples = IAudioSamples.make(1024, inputAudioCoder.getChannels());
+		int offset = 0;
+		while(offset < targetPacket.getSize()) {
+			// デコード実行
+			retval = inputAudioCoder.decodeAudio(inSamples, targetPacket, offset);
+			if(retval <= 0) {
+				logger.warn("デコードに失敗するパケットがきました。(ただしスルーして次に進む)");
+				return;
+			}
+			offset += retval;
+			
+			if(inSamples.isComplete()) {
+				// パケットがコンプリートしているなら、次にすすめます。
+				ConvertManager convertManager = ConvertManager.getInstance();
+				convertManager.executeAudio(inSamples);
+			}
+		}
+	}
+	/**
+	 * 映像の処理を実施する。
+	 * @param targetPacket
+	 */
+	private void executeVideo(IPacket targetPacket) {
+		int retval = -1;
+		IVideoPicture inPicture = IVideoPicture.make(inputVideoCoder.getPixelType(), inputVideoCoder.getWidth(), inputVideoCoder.getHeight());
+		int offset = 0;
+		while(offset < targetPacket.getSize()) {
+			retval = inputVideoCoder.decodeVideo(inPicture, targetPacket, offset);
+			if(retval <=0) {
+				logger.warn("デコードに失敗するパケットがきました。(ただしスルーして次にすすみます。)");
+				return;
+			}
+			offset += retval;
+			
+			if(inPicture.isComplete()) {
+				// 処理が完了している場合は、次のりサンプルとエンコードに進む。
+				// ここから先はコンバート情報に依存するので、別のところで処理すべき。
+				ConvertManager convertManager = ConvertManager.getInstance();
+				convertManager.executeVideo(inPicture);
+			}
+		}
 	}
 }
