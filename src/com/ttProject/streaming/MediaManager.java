@@ -439,7 +439,16 @@ public abstract class MediaManager {
 		if(retval < 0) {
 			throw new RuntimeException("出力用のURLを開くことができませんでした。:" + url);
 		}
+		// containerを登録しておく。
+		this.container = container;
 		return false;
+	}
+	public void writeHeader() {
+		int retval = -1;
+		retval = this.container.writeHeader();
+		if(retval < 0) {
+			throw new RuntimeException("コンテナのheaderへの書き込みに失敗しました。");
+		}
 	}
 	public ISimpleMediaFile getStreamInfo() {
 		return streamInfo;

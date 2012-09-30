@@ -28,6 +28,7 @@ public class Transcoder implements Runnable {
 			transcode();
 		}
 		catch (Exception e) {
+			logger.error("変換がおわってしまいました。", e);
 		}
 		finally {
 			logger.info("処理がおわりました。");
@@ -51,6 +52,7 @@ public class Transcoder implements Runnable {
 	 * 変換の中枢動作
 	 */
 	private void transcode() {
+		logger.info("変換を開始します。");
 		ConvertManager convertManager = ConvertManager.getInstance();
 		FlvManager flvManager = convertManager.getFlvManager();
 		IPacket packet = IPacket.make();

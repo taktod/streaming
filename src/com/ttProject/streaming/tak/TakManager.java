@@ -40,7 +40,7 @@ public class TakManager extends MediaManager{
 	@Override
 	public boolean setup() {
 		// ここで実行することは、streamURLの登録とcontainerを開くこと(コンテナを開く動作はしなくてもいいかも)
-		handler = new TakHandler(); // handlerをつくっておく。
+		handler = new TakHandler("~/test" + getName() + ".flv"); // handlerをつくっておく。
 		if(!isRawStream()) {
 			// 生ストリームでない場合はTakHandlerの登録とFactoryの作成が必要。
 			TakHandlerFactory factory = TakHandlerFactory.getFactory();

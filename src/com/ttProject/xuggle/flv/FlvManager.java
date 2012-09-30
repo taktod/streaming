@@ -37,21 +37,25 @@ public class FlvManager {
 	private FlvDataQueue inputDataQueue = null;
 	
 	public FlvManager() {
+		logger.info("flvManagerを初期化します。");
 		setup();
+		// TODO ここでコンテナを開こうとすると、フリーズします。(ffmpegからwaitがかかるらしい。)
 		// TODO コンテナについては、たぶんここでつくっても問題ないと思うので(transcoderでは動作threadの冒頭で実施していました。)実行しておく。
-		openInputContainer();
+//		openInputContainer();
 	}
 	/**
 	 * 
 	 * @return
 	 */
 	public boolean setup() {
+		logger.info("セットアップの開始");
 		ConvertManager convertManager = ConvertManager.getInstance();
 		// 変換用のHandlerを準備しておく。
 		inputDataQueue = new FlvDataQueue();
 		FlvHandler flvHandler = new FlvHandler(inputDataQueue);
 		FlvHandlerFactory flvFactory = FlvHandlerFactory.getFactory();
 		flvFactory.registerHandler(convertManager.getName(), flvHandler);
+		inputDataQueue.putHeaderData(FlvAtom.flvHeader().toByteBuffer());
 		return true;
 	}
 	/**
@@ -69,6 +73,7 @@ public class FlvManager {
 	 * コンストラクタで動作、入力用のffmpegのコンテナをあけておく。
 	 */
 	public void openInputContainer() {
+		logger.info("入力コンテナを開きます。");
 		String url;
 		int retval = -1;
 		ConvertManager convertManager = ConvertManager.getInstance();
@@ -81,10 +86,13 @@ public class FlvManager {
 		inputFormat.setInputFormat("flv");
 		
 		// url, read動作, フォーマットはflv, dynamicに動作して, metaデータはなしという指定
+		logger.info("b");
 		retval = inputContainer.open(url, IContainer.Type.READ, inputFormat, true, false);
 		if(retval < 0) {
+			logger.info("入力コンテナの開くのに失敗しました。");
 			throw new RuntimeException("入力用のURLを開くことができませんでした。");
 		}
+		logger.info("a");
 	}
 	/**
 	 * 入力コーダーを確認、必要なら生成する。
@@ -192,6 +200,7 @@ public class FlvManager {
 			}
 			return false;
 		}
+		logger.info("コンテナからデータを取得しました。変換にすすみます。");
 		// 入力コーダーを確認します。
 		if(!checkInputCoder(packet)) {
 			// 処理すべきコーダーでなかった。

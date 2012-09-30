@@ -1,5 +1,7 @@
 package com.ttProject.streaming.tak;
 
+import java.io.FileOutputStream;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,8 +16,25 @@ public class TakHandler implements IURLProtocolHandler {
 	private final Logger logger = LoggerFactory.getLogger(TakHandler.class);
 	/** takStreamingの出力先 */
 	private String outputDirectory;
+	private FileOutputStream fos = null;
+	public TakHandler(String target) {
+		outputDirectory = target;
+		try {
+			fos = new FileOutputStream(outputDirectory);
+		}
+		catch (Exception e) {
+		}
+	}
 	@Override
 	public int close() {
+		if(fos != null) {
+			try {
+				fos.close();
+			}
+			catch (Exception e) {
+			}
+			fos = null;
+		}
 		return 0;
 	}
 	@Override
@@ -37,6 +56,14 @@ public class TakHandler implements IURLProtocolHandler {
 	}
 	@Override
 	public int write(byte[] buf, int size) {
+		logger.info("書き込みがきました。" + outputDirectory);
+		if(fos != null) {
+			try {
+				fos.write(buf, 0, size);
+			}
+			catch (Exception e) {
+			}
+		}
 		return 0;
 	}
 }

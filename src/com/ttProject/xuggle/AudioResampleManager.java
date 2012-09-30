@@ -3,6 +3,9 @@ package com.ttProject.xuggle;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.xuggle.xuggler.IAudioResampler;
 import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.IStreamCoder;
@@ -16,6 +19,8 @@ import com.xuggle.xuggler.IStreamCoder;
  * sampleRateとChannelsをみて、目標と違う場合はリサンプラーを作成する必要あり。
  */
 public class AudioResampleManager {
+	/** ロガー */
+	private final Logger logger = LoggerFactory.getLogger(AudioResampleManager.class);
 	private IAudioResampler resampler = null;
 	private Set<AudioEncodeManager> encodeManagers = new HashSet<AudioEncodeManager>();
 	// 変換目標
@@ -27,11 +32,12 @@ public class AudioResampleManager {
 		encodeManagers.add(encodeManager);
 		setSampleRate(audioCoder.getSampleRate());
 		setChannels(audioCoder.getChannels());
+		logger.info("resampler:" + sampleRate + ":" + channels);
 	}
 	public boolean addEncodeManager(AudioEncodeManager encodeManager) {
 		IStreamCoder audioCoder = encodeManager.getAudioCoder();
 		if(audioCoder.getSampleRate() == getSampleRate()
-		|| audioCoder.getChannels() == getChannels()) {
+		&& audioCoder.getChannels() == getChannels()) {
 			encodeManagers.add(encodeManager);
 			return true;
 		}

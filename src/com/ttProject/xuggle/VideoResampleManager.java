@@ -3,6 +3,9 @@ package com.ttProject.xuggle;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.xuggle.xuggler.IPixelFormat;
 import com.xuggle.xuggler.IStreamCoder;
 import com.xuggle.xuggler.IVideoPicture;
@@ -18,6 +21,8 @@ import com.xuggle.xuggler.IVideoResampler;
  * リサンプラーの作成には、変換対象と変換元の両方のデータが必要。
  */
 public class VideoResampleManager {
+	/** ロガー */
+	private final Logger logger = LoggerFactory.getLogger(VideoResampleManager.class);
 	private IVideoResampler resampler = null;
 	private Set<VideoEncodeManager> encodeManagers = new HashSet<VideoEncodeManager>();
 	// 変換目標
@@ -31,12 +36,13 @@ public class VideoResampleManager {
 		setPixelType(videoCoder.getPixelType());
 		setWidth(videoCoder.getWidth());
 		setHeight(videoCoder.getHeight());
+		logger.info(width + ":" + height);
 	}
 	public boolean addEncodeManager(VideoEncodeManager encodeManager) {
 		IStreamCoder videoCoder = encodeManager.getVideoCoder();
 		if(videoCoder.getPixelType().equals(getPixelType())
-		|| videoCoder.getWidth() == getWidth()
-		|| videoCoder.getHeight() == getHeight()) {
+		&& videoCoder.getWidth() == getWidth()
+		&& videoCoder.getHeight() == getHeight()) {
 			encodeManagers.add(encodeManager);
 			return true;
 		}

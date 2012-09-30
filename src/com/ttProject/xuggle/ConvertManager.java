@@ -69,6 +69,7 @@ public class ConvertManager {
 	 * 初期化
 	 */
 	public void initialize(String name) {
+		logger.info("初期化を実行します。:" + name);
 		// 名前を保持しておく。
 		this.name = name;
 		// encode.xmlから必要な情報を抜き出しておく。
@@ -77,6 +78,7 @@ public class ConvertManager {
 		List<MediaManager> mediaManagers = analizer.getManagers(); // 作成された、MediaManagerリストを取得する
 		
 		this.mediaManagers.clear();
+		logger.info("managerの中身を確認していきます。");
 		// managerの内容を確認する。
 		for(MediaManager manager : mediaManagers) {
 			// 内容の構築をすすめる。
@@ -95,8 +97,10 @@ public class ConvertManager {
 		}
 		if(this.mediaManagers.size() == 0) {
 			// コンバートする必要がないので、ここでおわる。
+			logger.info("コンバートする必要がないので、ここで処理を終了します。");
 			return;
 		}
+		logger.info("コンバートを実行するためflvManagerを構築します。" + mediaManagers.size() + "個の変換が存在します。");
 		// コンバートを実行する必要がある。
 		// FlvManagerをつくる。
 		flvManager = new FlvManager();
@@ -120,6 +124,7 @@ public class ConvertManager {
 		// 要するにTranscoderの部分
 		// 実際の内部の初期化は、inputContainerを開く部分は入力変換用のthereadの冒頭
 		// 出力コンテナの部分は、入力メディアデータのうち対象のデータをうけとった瞬間に実行(もしくは再構築)する。
+		logger.info("コンバート処理用のthreadを準備します。");
 		transcoder = new Transcoder();
 		transcodeThread = new Thread(transcoder);
 		transcodeThread.setDaemon(true);
@@ -131,22 +136,31 @@ public class ConvertManager {
 	 * @param video 映像があるかフラグ
 	 */
 	public void resetupOutputContainer(boolean audioFlg, boolean videoFlg) {
+		logger.info("出力コンテナの準備を実行します。");
 		// clearだけでいいのか？ほんとうは閉じないとだめなのでは？
 		videoEncodeManagers.clear();
 		audioEncodeManagers.clear();
 		videoResampleManagers.clear();
 		audioResampleManagers.clear();
 		for(MediaManager manager : mediaManagers) {
+			logger.info("mediaManagerを読み取りました。設定をはじめます。");
 			// コンテナを開き直します。
 			manager.resetupContainer();
 			setupVideoEncodeManagers(manager);
 			setupAudioEncodeManagers(manager);
 		}
 		for(VideoEncodeManager videoEncodeManager : videoEncodeManagers) {
+			videoEncodeManager.setupCoder();
 			setupVideoResamplerManagers(videoEncodeManager);
 		}
 		for(AudioEncodeManager audioEncodeManager : audioEncodeManagers) {
+			audioEncodeManager.setupCoder();
 			setupAudioResamplerManagers(audioEncodeManager);
+		}
+		// containerのheaderを書き込む必要あり。
+		for(MediaManager manager : mediaManagers) {
+			logger.info("headerを書き込みます。");
+			manager.writeHeader();
 		}
 	}
 	private void setupVideoResamplerManagers(VideoEncodeManager videoEncodeManager) {
@@ -170,25 +184,34 @@ public class ConvertManager {
 		audioResampleManagers.add(audioResampleManager);
 	}
 	private void setupVideoEncodeManagers(MediaManager manager) {
+		logger.info("映像のencodeManagerを作成します。");
 		// それぞれに対してvideoCoderとaudioCoderを必要であれば開く必要あり。
 		for(VideoEncodeManager videoEncodeManager : videoEncodeManagers) {
 			if(videoEncodeManager.addMediaManager(manager)) {
+				logger.info("使い回し");
 				// 登録できたので、次にいく。
 				return;
 			}
 		}
+		logger.info("新規");
 		// 対象となるvideoEncodeManagerが存在しなかったのであたらしく生成する。
 		VideoEncodeManager videoEncodeManager = new VideoEncodeManager(manager);
 		videoEncodeManagers.add(videoEncodeManager);
 	}
 	private void setupAudioEncodeManagers(MediaManager manager) {
+		logger.info("音声のencodeManagerを作成します。");
 		for(AudioEncodeManager audioEncodeManager : audioEncodeManagers) {
 			if(audioEncodeManager.addMediaManager(manager)) {
+				logger.info("使い回し");
 				return;
 			}
 		}
+		logger.info("新規");
 		AudioEncodeManager audioEncodeManager = new AudioEncodeManager(manager);
 		audioEncodeManagers.add(audioEncodeManager);
+	}
+	public void writeHeaderData() {
+		
 	}
 	/**
 	 * flvデータをサーバーから受け取ったときの動作
@@ -204,16 +227,27 @@ public class ConvertManager {
 		}
 	}
 	public void executeAudio(IAudioSamples decodedSamples) {
+		IAudioSamples resampledData;
 		// データをリサンプルする。
 		for(AudioResampleManager audioResampleManager : audioResampleManagers) {
 			// リサンプルかける。
+			resampledData = audioResampleManager.resampleAudio(decodedSamples);
+			for(AudioEncodeManager audioEncodeManager : audioResampleManager.getEncodeManagers()) {
+				// エンコードを実行する。
+				audioEncodeManager.encodeAudio(resampledData);
+			}
 		}
-		// エンコードする
-		// 出力コンテナに渡す
 	}
 	public void executeVideo(IVideoPicture decodedPicture) {
+		IVideoPicture resampledData;
 		// データをリサンプルする。
-		// エンコードする
-		// 出力コンテナに渡す
+		for(VideoResampleManager videoResampleManager : videoResampleManagers) {
+			// リサンプルをかける。
+			resampledData = videoResampleManager.resampleVideo(decodedPicture);
+			for(VideoEncodeManager videoEncodeManager : videoResampleManager.getEncodeManagers()) {
+				// エンコード実行
+				videoEncodeManager.encodeVideo(resampledData);
+			}
+		}
 	}
 }

@@ -3,9 +3,14 @@ package com.ttProject.xuggle;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.ttProject.streaming.MediaManager;
+import com.xuggle.xuggler.IAudioSamples;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IContainer;
+import com.xuggle.xuggler.IPacket;
 import com.xuggle.xuggler.ISimpleMediaFile;
 import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IStreamCoder;
@@ -20,6 +25,8 @@ import com.xuggle.xuggler.IStreamCoder;
  * encodeManagerはaudioもしくはvideoのチャンネルが追加されたら作りなおす必要がでてくる。
  */
 public class AudioEncodeManager {
+	/** ロガー */
+	private final Logger logger = LoggerFactory.getLogger(AudioEncodeManager.class);
 	/** 音声コーダー */
 	private IStreamCoder audioCoder = null;
 	/** 処理対象コンテナ */
@@ -40,6 +47,7 @@ public class AudioEncodeManager {
 		setBitRate(streamInfo.getAudioBitRate());
 		setSampleRate(streamInfo.getAudioSampleRate());
 		setChannels(streamInfo.getAudioChannels());
+		logger.info(codec.toString());
 	}
 	/**
 	 * 対象メディアマネージャーが合致する場合は登録する。
@@ -49,9 +57,9 @@ public class AudioEncodeManager {
 	public boolean addMediaManager(MediaManager mediaManager) {
 		ISimpleMediaFile streamInfo = mediaManager.getStreamInfo();
 		if(streamInfo.getAudioCodec().equals(getCodec())
-		|| streamInfo.getAudioBitRate() == getBitRate()
-		|| streamInfo.getAudioSampleRate() == getSampleRate()
-		|| streamInfo.getAudioChannels() == getChannels()) {
+		&& streamInfo.getAudioBitRate() == getBitRate()
+		&& streamInfo.getAudioSampleRate() == getSampleRate()
+		&& streamInfo.getAudioChannels() == getChannels()) {
 			addContainer(mediaManager.getContainer());
 			return true;
 		}
@@ -83,6 +91,25 @@ public class AudioEncodeManager {
 				outCoder.setChannels(getChannels());
 				outCoder.open(null, null);
 				audioCoder = outCoder;
+			}
+		}
+	}
+	public void encodeAudio(IAudioSamples samples) {
+		int retval = -1;
+		IPacket outPacket = IPacket.make();
+		int numSamplesConsumed = 0;
+		while(numSamplesConsumed < samples.getNumSamples()) {
+			retval = audioCoder.encodeAudio(outPacket, samples, numSamplesConsumed);
+			if(retval <= 0) {
+//				logger.warn("audioのエンコードに失敗しましたが、無視して続けます。");
+				break;
+			}
+			numSamplesConsumed += retval;
+			if(outPacket.isComplete()) {
+				// コンテナにいれます。
+				for(IContainer container : getContainers()) {
+					container.writePacket(outPacket);
+				}
 			}
 		}
 	}

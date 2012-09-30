@@ -4,14 +4,19 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.ttProject.streaming.MediaManager;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IContainer;
+import com.xuggle.xuggler.IPacket;
 import com.xuggle.xuggler.IRational;
 import com.xuggle.xuggler.ISimpleMediaFile;
 import com.xuggle.xuggler.IPixelFormat.Type;
 import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IStreamCoder;
+import com.xuggle.xuggler.IVideoPicture;
 
 /**
  * コンバートの動作を管理するManager
@@ -21,6 +26,8 @@ import com.xuggle.xuggler.IStreamCoder;
  * ここではコーデック変換を担当
  */
 public class VideoEncodeManager {
+	/** ロガー */
+	private final Logger logger = LoggerFactory.getLogger(VideoEncodeManager.class);
 	/** 映像コーダー */
 	private IStreamCoder videoCoder = null;
 	/** 処理対象コンテナ */
@@ -55,6 +62,7 @@ public class VideoEncodeManager {
 		setProperties(mediaManager.getVideoProperty());
 		setFlags(mediaManager.getVideoFlags());
 		setTimeBase(streamInfo.getVideoTimeBase());
+		logger.info(width + ":" + height);
 	}
 	/**
 	 * 対象のメディアマネージャーが合致する場合は登録する。
@@ -65,16 +73,16 @@ public class VideoEncodeManager {
 		ISimpleMediaFile streamInfo = mediaManager.getStreamInfo();
 		// データが一致するか確認する。
 		if(streamInfo.getVideoCodec().equals(getCodec())
-		|| streamInfo.getVideoHeight() == getHeight()
-		|| streamInfo.getVideoWidth() == getWidth()
-		|| streamInfo.getVideoPixelFormat().equals(getPixelFormat())
-		|| streamInfo.getVideoGlobalQuality() == getGlobalQuality()
-		|| streamInfo.getVideoBitRate() == getBitRate()
-		|| streamInfo.getVideoFrameRate().equals(getFrameRate())
-		|| streamInfo.getVideoNumPicturesInGroupOfPictures() == getGroupsOfPictures()
-		|| mediaManager.getVideoProperty().equals(getProperties())
-		|| mediaManager.getVideoFlags().equals(getFlags())
-		|| streamInfo.getVideoTimeBase().equals(getTimeBase())) {
+		&& streamInfo.getVideoHeight() == getHeight()
+		&& streamInfo.getVideoWidth() == getWidth()
+		&& streamInfo.getVideoPixelFormat().equals(getPixelFormat())
+		&& streamInfo.getVideoGlobalQuality() == getGlobalQuality()
+		&& streamInfo.getVideoBitRate() == getBitRate()
+		&& streamInfo.getVideoFrameRate().equals(getFrameRate())
+		&& streamInfo.getVideoNumPicturesInGroupOfPictures() == getGroupsOfPictures()
+		&& mediaManager.getVideoProperty().equals(getProperties())
+		&& mediaManager.getVideoFlags().equals(getFlags())
+		&& streamInfo.getVideoTimeBase().equals(getTimeBase())) {
 			// 一致した。
 			addContainer(mediaManager.getContainer());
 			return true;
@@ -86,16 +94,20 @@ public class VideoEncodeManager {
 	 * 登録されている情報でcoderを作成する。
 	 */
 	public void setupCoder() {
+		logger.info("コーダーをセットアップします。" + width + ":" + height);
 		ICodec outCodec = ICodec.findEncodingCodec(getCodec());
 		if(outCodec == null) {
 			throw new RuntimeException("video出力用のコーデックを取得することができませんでした。");
 		}
 		for(IContainer container : getContainers()) {
 			IStream outStream = null;
+			logger.info("container" + container.toString());
 			if(videoCoder != null) {
+				logger.info("コーダーから作成する。");
 				outStream = container.addNewStream(videoCoder);
 			}
 			else {
+				logger.info("ICodecから生成する。");
 				outStream = container.addNewStream(outCodec);
 			}
 			if(outStream == null) {
@@ -123,11 +135,35 @@ public class VideoEncodeManager {
 			}
 		}
 	}
+	public void encodeVideo(IVideoPicture picture) {
+		int retval = -1;
+		IPacket outPacket = IPacket.make();
+		
+		int numBytesConsumed = 0;
+		if(picture.isComplete()) {
+			retval = videoCoder.encodeVideo(outPacket, picture, 0);
+			if(retval <= 0) {
+				return;
+			}
+			numBytesConsumed += retval;
+			if(outPacket.isComplete()) {
+				for(IContainer container : getContainers()) {
+					container.writePacket(outPacket);
+				}
+			}
+		}
+	}
 	/**
 	 * コンテナを追加する。
 	 * @param container
 	 */
 	public void addContainer(IContainer container) {
+		if(container == null) {
+			logger.info("コンテナを追加します。nullだった・・");
+		}
+		else {
+			logger.info("コンテナを追加します。" + container.toString());
+		}
 		containers.add(container);
 	}
 	public IStreamCoder getVideoCoder() {
