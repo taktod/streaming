@@ -6,9 +6,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.flazr.util.Utils;
-import com.ttProject.util.HexUtils;
-
 /**
  * flvの入力データqueueを保持するクラス
  * xuggleのIURLProtocolHandlerはffmpegが処理のトリガーになっています。
