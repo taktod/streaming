@@ -45,7 +45,7 @@ public abstract class MediaManager {
 	 * コンテナデータの参照
 	 * @return
 	 */
-	protected IContainer getContainer() {
+	public IContainer getContainer() {
 		return container;
 	}
 	/** 参照先のデータを保持しておく必要あり。 */
@@ -182,6 +182,8 @@ public abstract class MediaManager {
 	 */
 	public MediaManager(Node node) {
 		this.node = node;
+//		this.streamInfo.setAudioTimeBase(IRational.make(1, 1000));
+		this.streamInfo.setVideoTimeBase(IRational.make(1, 1000));
 	}
 	/**
 	 * 解析開始
@@ -426,7 +428,7 @@ public abstract class MediaManager {
 	 */
 	public abstract boolean resetupContainer();
 	/** 以下取得用 */
-	public boolean resetupContainer(String url, String ext) {
+	protected boolean resetupContainer(String url, String ext) {
 		int retval = -1;
 		IContainer container = IContainer.make();
 		ISimpleMediaFile outputInfo = getStreamInfo();

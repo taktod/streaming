@@ -1,7 +1,11 @@
 package com.ttProject.xuggle;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import com.xuggle.xuggler.IAudioResampler;
 import com.xuggle.xuggler.IAudioSamples;
+import com.xuggle.xuggler.IStreamCoder;
 
 /**
  * コンバートの動作を管理するManager
@@ -13,18 +17,25 @@ import com.xuggle.xuggler.IAudioSamples;
  */
 public class AudioResampleManager {
 	private IAudioResampler resampler = null;
+	private Set<AudioEncodeManager> encodeManagers = new HashSet<AudioEncodeManager>();
 	// 変換目標
 	private int sampleRate;
 	private int channels;
 
-	/**
-	 * コンストラクタ
-	 * @param sampleRate
-	 * @param channels
-	 */
-	public AudioResampleManager(int sampleRate, int channels) {
-		this.sampleRate = sampleRate;
-		this.channels = channels;
+	public AudioResampleManager(AudioEncodeManager encodeManager) {
+		IStreamCoder audioCoder = encodeManager.getAudioCoder();
+		encodeManagers.add(encodeManager);
+		setSampleRate(audioCoder.getSampleRate());
+		setChannels(audioCoder.getChannels());
+	}
+	public boolean addEncodeManager(AudioEncodeManager encodeManager) {
+		IStreamCoder audioCoder = encodeManager.getAudioCoder();
+		if(audioCoder.getSampleRate() == getSampleRate()
+		|| audioCoder.getChannels() == getChannels()) {
+			encodeManagers.add(encodeManager);
+			return true;
+		}
+		return false;
 	}
 	/**
 	 * 音声をリサンプルします。
@@ -33,7 +44,7 @@ public class AudioResampleManager {
 	 */
 	public IAudioSamples resampleAudio(IAudioSamples samples) {
 		checkResampler(samples);
-		IAudioSamples result = IAudioSamples.make(1024, channels);
+		IAudioSamples result = IAudioSamples.make(1024, getChannels());
 		int retval = -1;
 		retval = resampler.resample(result, samples, samples.getNumSamples());
 		if(retval < 0) {
@@ -61,10 +72,26 @@ public class AudioResampleManager {
 //		if(resampler != null) {
 //			resampler.delete();
 //		}
-		resampler = IAudioResampler.make(channels, samples.getChannels(), sampleRate, samples.getSampleRate());
+		resampler = IAudioResampler.make(getChannels(), samples.getChannels(), getSampleRate(), samples.getSampleRate());
 		if(resampler == null) {
 			throw new RuntimeException("audioリサンプラーの作成に失敗しました。");
 		}
 	}
+	public Set<AudioEncodeManager> getEncodeManagers() {
+		return encodeManagers;
+	}
+	private int getSampleRate() {
+		return sampleRate;
+	}
+	private void setSampleRate(int sampleRate) {
+		this.sampleRate = sampleRate;
+	}
+	private int getChannels() {
+		return channels;
+	}
+	private void setChannels(int channels) {
+		this.channels = channels;
+	}
+	
 }
 

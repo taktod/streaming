@@ -1,8 +1,12 @@
 package com.ttProject.xuggle;
 
-import com.xuggle.xuggler.IAudioSamples;
+import java.util.HashSet;
+import java.util.Set;
+
+import com.ttProject.streaming.MediaManager;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IContainer;
+import com.xuggle.xuggler.ISimpleMediaFile;
 import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IStreamCoder;
 
@@ -16,45 +20,104 @@ import com.xuggle.xuggler.IStreamCoder;
  * encodeManagerはaudioもしくはvideoのチャンネルが追加されたら作りなおす必要がでてくる。
  */
 public class AudioEncodeManager {
-	// データが追加されてしまったら、コンテナをつくりなおして、codecを作り直す必要があるらしい。
-	// ということはcontainerを保持しておいてあとで必要になったら開き直すというのは意味がない。
-	
-	// コンテナからstreamを取り出して、streamからcoderを取り出す必要あり。
-	// ということは同じコーデックでも使い回しはできないのか？
-	// それとも必要があるなら使い回せるのか？そのあたり疑問
-	// とりあえず情報を全く一致させてあるなら、必要ないとして組んでみる。
+	/** 音声コーダー */
 	private IStreamCoder audioCoder = null;
-	public AudioEncodeManager(IContainer[] containers, ICodec.ID codec, int bitRate,  int sampleRate, int channels) {
-		// すべてのコンテナのオーディオトラックを追加し開く。
-		ICodec outCodec = ICodec.findEncodingCodec(codec);
+	/** 処理対象コンテナ */
+	private Set<IContainer> containers = new HashSet<IContainer>();
+	private ICodec.ID codec;
+	private int bitRate;
+	private int sampleRate;
+	private int channels;
+//	private IRational timeBase;
+	/**
+	 * コンストラクタ
+	 * @param mediaManager
+	 */
+	public AudioEncodeManager(MediaManager mediaManager) {
+		ISimpleMediaFile streamInfo = mediaManager.getStreamInfo();
+		addContainer(mediaManager.getContainer());
+		setCodec(streamInfo.getAudioCodec());
+		setBitRate(streamInfo.getAudioBitRate());
+		setSampleRate(streamInfo.getAudioSampleRate());
+		setChannels(streamInfo.getAudioChannels());
+	}
+	/**
+	 * 対象メディアマネージャーが合致する場合は登録する。
+	 * @param mediaManager
+	 * @return true:合致した場合 false:合致しない場合
+	 */
+	public boolean addMediaManager(MediaManager mediaManager) {
+		ISimpleMediaFile streamInfo = mediaManager.getStreamInfo();
+		if(streamInfo.getAudioCodec().equals(getCodec())
+		|| streamInfo.getAudioBitRate() == getBitRate()
+		|| streamInfo.getAudioSampleRate() == getSampleRate()
+		|| streamInfo.getAudioChannels() == getChannels()) {
+			addContainer(mediaManager.getContainer());
+			return true;
+		}
+		return false;
+	}
+	/**
+	 * 登録されている情報でcoderを作成する。
+	 */
+	public void setupCoder() {
+		ICodec outCodec = ICodec.findEncodingCodec(getCodec());
 		if(outCodec == null) {
 			throw new RuntimeException("audio出力用のコーデックを取得することができませんでした。");
 		}
-		for(IContainer container : containers) {
+		for(IContainer container : getContainers()) {
 			IStream outStream = null;
 			if(audioCoder != null) {
 				outStream = container.addNewStream(audioCoder);
 			}
 			else {
-				outStream = container.addNewStream(codec);
+				outStream = container.addNewStream(outCodec);
 			}
 			if(outStream == null) {
 				throw new RuntimeException("コンテナ用のストリーム作成失敗");
 			}
 			if(audioCoder == null) {
 				IStreamCoder outCoder = outStream.getStreamCoder();
-				outCoder.setBitRate(bitRate);
-				outCoder.setSampleRate(sampleRate);
-				outCoder.setChannels(channels);
+				outCoder.setBitRate(getBitRate());
+				outCoder.setSampleRate(getSampleRate());
+				outCoder.setChannels(getChannels());
 				outCoder.open(null, null);
 				audioCoder = outCoder;
 			}
 		}
 	}
-	public void encode(IAudioSamples samples) {
-		// すでにaudioCoderを開いているか確認
-		if(audioCoder == null) {
-			throw new RuntimeException("コーダーのないコンテナの変換を実行しようとしました。");
-		}
+	public void addContainer(IContainer container) {
+		containers.add(container);
 	}
+	public IStreamCoder getAudioCoder() {
+		return audioCoder;
+	}
+	private Set<IContainer> getContainers() {
+		return containers;
+	}
+	private ICodec.ID getCodec() {
+		return codec;
+	}
+	private void setCodec(ICodec.ID codec) {
+		this.codec = codec;
+	}
+	private int getBitRate() {
+		return bitRate;
+	}
+	private void setBitRate(int bitRate) {
+		this.bitRate = bitRate;
+	}
+	private int getSampleRate() {
+		return sampleRate;
+	}
+	private void setSampleRate(int sampleRate) {
+		this.sampleRate = sampleRate;
+	}
+	private int getChannels() {
+		return channels;
+	}
+	private void setChannels(int channels) {
+		this.channels = channels;
+	}
+	
 }

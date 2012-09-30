@@ -1,6 +1,10 @@
 package com.ttProject.xuggle;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import com.xuggle.xuggler.IPixelFormat;
+import com.xuggle.xuggler.IStreamCoder;
 import com.xuggle.xuggler.IVideoPicture;
 import com.xuggle.xuggler.IVideoResampler;
 
@@ -15,21 +19,28 @@ import com.xuggle.xuggler.IVideoResampler;
  */
 public class VideoResampleManager {
 	private IVideoResampler resampler = null;
+	private Set<VideoEncodeManager> encodeManagers = new HashSet<VideoEncodeManager>();
 	// 変換目標
 	private IPixelFormat.Type pixelType;
 	private int width;
 	private int height;
-
-	/**
-	 * コンストラクタ
-	 * @param pixelType
-	 * @param width
-	 * @param height
-	 */
-	public VideoResampleManager(IPixelFormat.Type pixelType, int width, int height) {
-		this.pixelType = pixelType;
-		this.width = width;
-		this.height = height;
+	public VideoResampleManager(VideoEncodeManager encodeManager) {
+		// encodeManagerから必要なリサンプルマネージャーを作成する。
+		IStreamCoder videoCoder = encodeManager.getVideoCoder();
+		encodeManagers.add(encodeManager);
+		setPixelType(videoCoder.getPixelType());
+		setWidth(videoCoder.getWidth());
+		setHeight(videoCoder.getHeight());
+	}
+	public boolean addEncodeManager(VideoEncodeManager encodeManager) {
+		IStreamCoder videoCoder = encodeManager.getVideoCoder();
+		if(videoCoder.getPixelType().equals(getPixelType())
+		|| videoCoder.getWidth() == getWidth()
+		|| videoCoder.getHeight() == getHeight()) {
+			encodeManagers.add(encodeManager);
+			return true;
+		}
+		return false;
 	}
 	/**
 	 * 画像をリサンプルします。
@@ -38,7 +49,7 @@ public class VideoResampleManager {
 	 */
 	public IVideoPicture resampleVideo(IVideoPicture picture) {
 		checkResampler(picture);
-		IVideoPicture result = IVideoPicture.make(pixelType, width, height);
+		IVideoPicture result = IVideoPicture.make(getPixelType(), getWidth(), getHeight());
 		int retval = -1;
 		retval = resampler.resample(result, picture);
 		if(retval < 0) {
@@ -69,9 +80,30 @@ public class VideoResampleManager {
 //		if(resampler != null) {
 //			resampler.delete();
 //		}
-		resampler = IVideoResampler.make(width, height, pixelType, picture.getWidth(), picture.getHeight(), picture.getPixelType());
+		resampler = IVideoResampler.make(getWidth(), getHeight(), getPixelType(), picture.getWidth(), picture.getHeight(), picture.getPixelType());
 		if(resampler == null) {
 			throw new RuntimeException("videoリサンプラーの作成に失敗しました。");
 		}
+	}
+	public Set<VideoEncodeManager> getEncodeManagers() {
+		return encodeManagers;
+	}
+	private IPixelFormat.Type getPixelType() {
+		return pixelType;
+	}
+	private void setPixelType(IPixelFormat.Type pixelType) {
+		this.pixelType = pixelType;
+	}
+	private int getWidth() {
+		return width;
+	}
+	private void setWidth(int width) {
+		this.width = width;
+	}
+	private int getHeight() {
+		return height;
+	}
+	private void setHeight(int height) {
+		this.height = height;
 	}
 }

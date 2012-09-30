@@ -1,6 +1,11 @@
 package com.ttProject.xuggle;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.flazr.io.flv.FlvAtom;
 import com.ttProject.streaming.MediaManager;
@@ -21,8 +26,9 @@ import com.xuggle.xuggler.IVideoPicture;
  */
 public class ConvertManager {
 	/** 各部屋ごとのインスタンス保持 */
-//	private static final Map<String, ConvertManager> instances = new ConcurrentHashMap<String, ConvertManager>();
 	private static final ConvertManager instance = new ConvertManager();
+	/** ロガー */
+	private final Logger logger = LoggerFactory.getLogger(ConvertManager.class);
 	/** 名前保持 */
 	private String name;
 	public String getName() {
@@ -30,6 +36,12 @@ public class ConvertManager {
 	}
 	/** 生データのtakStreaming用のmanager */
 	private TakManager rawTakManager = null;
+	/** コンバートマネージャー保持 */
+	private Set<MediaManager> mediaManagers = new HashSet<MediaManager>();
+	private Set<VideoEncodeManager> videoEncodeManagers = new HashSet<VideoEncodeManager>();
+	private Set<AudioEncodeManager> audioEncodeManagers = new HashSet<AudioEncodeManager>();
+	private Set<VideoResampleManager> videoResampleManagers = new HashSet<VideoResampleManager>();
+	private Set<AudioResampleManager> audioResampleManagers = new HashSet<AudioResampleManager>();
 	/** コンバート用のflvManager */
 	private FlvManager flvManager = null;
 	public FlvManager getFlvManager() {
@@ -64,7 +76,7 @@ public class ConvertManager {
 		// このマネージャーリストにそって、コンバートを実行する必要がある。
 		List<MediaManager> mediaManagers = analizer.getManagers(); // 作成された、MediaManagerリストを取得する
 		
-		boolean needConvert = false;
+		this.mediaManagers.clear();
 		// managerの内容を確認する。
 		for(MediaManager manager : mediaManagers) {
 			// 内容の構築をすすめる。
@@ -77,21 +89,28 @@ public class ConvertManager {
 					rawTakManager = takManager;
 					continue;
 				}
-				else {
-					needConvert = true;
-				}
 			}
-			else {
-				needConvert = true;
-			}
+			// mediaManagerのセットに登録しておく。
+			this.mediaManagers.add(manager);
 		}
-		if(!needConvert) {
+		if(this.mediaManagers.size() == 0) {
 			// コンバートする必要がないので、ここでおわる。
 			return;
 		}
 		// コンバートを実行する必要がある。
 		// FlvManagerをつくる。
 		flvManager = new FlvManager();
+		// リサンプラーはどうやって決める？
+		// 元データ	リサンプラーA	エンコードAA	出力AAA
+		// 									出力AAB
+		// 						エンコードAB	出力ABA
+		// 									出力ABB
+		// 			リサンプラーB	エンコードBA	出力BAA
+		// 			リサンプラーC	エンコードCA	出力CAA
+		// 									出力CAB
+		// みたいな感じになる。
+		// 出力データ一覧は別途取得可能なので、出力データ一覧から、リサンプラー一覧を構築していき。
+		// 処理的には、リサンプラー郡 -> 出力データ一覧が取得可能な形にしておくべき。
 		// AudioResampleManagerをつくる。(変換必須数をしらべてつくる。)
 		// VideoResampleManagerをつくる。(変換必須数をしらべてつくる。)
 		// AudioEncodeManagerをつくる。
@@ -112,7 +131,64 @@ public class ConvertManager {
 	 * @param video 映像があるかフラグ
 	 */
 	public void resetupOutputContainer(boolean audioFlg, boolean videoFlg) {
-		
+		// clearだけでいいのか？ほんとうは閉じないとだめなのでは？
+		videoEncodeManagers.clear();
+		audioEncodeManagers.clear();
+		videoResampleManagers.clear();
+		audioResampleManagers.clear();
+		for(MediaManager manager : mediaManagers) {
+			// コンテナを開き直します。
+			manager.resetupContainer();
+			setupVideoEncodeManagers(manager);
+			setupAudioEncodeManagers(manager);
+		}
+		for(VideoEncodeManager videoEncodeManager : videoEncodeManagers) {
+			setupVideoResamplerManagers(videoEncodeManager);
+		}
+		for(AudioEncodeManager audioEncodeManager : audioEncodeManagers) {
+			setupAudioResamplerManagers(audioEncodeManager);
+		}
+	}
+	private void setupVideoResamplerManagers(VideoEncodeManager videoEncodeManager) {
+		for(VideoResampleManager videoResampleManager : videoResampleManagers) {
+			if(videoResampleManager.addEncodeManager(videoEncodeManager)) {
+				// 登録できたので、次に移動
+				return;
+			}
+		}
+		VideoResampleManager videoResampleManager = new VideoResampleManager(videoEncodeManager);
+		videoResampleManagers.add(videoResampleManager);
+	}
+	private void setupAudioResamplerManagers(AudioEncodeManager audioEncodeManager) {
+		for(AudioResampleManager audioResampleManager : audioResampleManagers) {
+			if(audioResampleManager.addEncodeManager(audioEncodeManager)) {
+				// 登録できたので、次に移動
+				return;
+			}
+		}
+		AudioResampleManager audioResampleManager = new AudioResampleManager(audioEncodeManager);
+		audioResampleManagers.add(audioResampleManager);
+	}
+	private void setupVideoEncodeManagers(MediaManager manager) {
+		// それぞれに対してvideoCoderとaudioCoderを必要であれば開く必要あり。
+		for(VideoEncodeManager videoEncodeManager : videoEncodeManagers) {
+			if(videoEncodeManager.addMediaManager(manager)) {
+				// 登録できたので、次にいく。
+				return;
+			}
+		}
+		// 対象となるvideoEncodeManagerが存在しなかったのであたらしく生成する。
+		VideoEncodeManager videoEncodeManager = new VideoEncodeManager(manager);
+		videoEncodeManagers.add(videoEncodeManager);
+	}
+	private void setupAudioEncodeManagers(MediaManager manager) {
+		for(AudioEncodeManager audioEncodeManager : audioEncodeManagers) {
+			if(audioEncodeManager.addMediaManager(manager)) {
+				return;
+			}
+		}
+		AudioEncodeManager audioEncodeManager = new AudioEncodeManager(manager);
+		audioEncodeManagers.add(audioEncodeManager);
 	}
 	/**
 	 * flvデータをサーバーから受け取ったときの動作
@@ -129,6 +205,9 @@ public class ConvertManager {
 	}
 	public void executeAudio(IAudioSamples decodedSamples) {
 		// データをリサンプルする。
+		for(AudioResampleManager audioResampleManager : audioResampleManagers) {
+			// リサンプルかける。
+		}
 		// エンコードする
 		// 出力コンテナに渡す
 	}
