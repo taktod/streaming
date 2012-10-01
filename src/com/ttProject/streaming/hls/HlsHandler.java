@@ -1,5 +1,7 @@
 package com.ttProject.streaming.hls;
 
+import java.io.FileOutputStream;
+
 import org.slf4j.LoggerFactory;
 
 import org.slf4j.Logger;
@@ -13,8 +15,26 @@ import com.xuggle.xuggler.io.IURLProtocolHandler;
 public class HlsHandler implements IURLProtocolHandler {
 	/** ロガー */
 	private final Logger logger = LoggerFactory.getLogger(HlsHandler.class);
+	private String outputDirectory;
+	private FileOutputStream fos = null;
+	public HlsHandler(String target) {
+		outputDirectory = target;
+		try {
+			fos = new FileOutputStream(outputDirectory);
+		}
+		catch (Exception e) {
+		}
+	}
 	@Override
 	public int close() {
+		if(fos != null) {
+			try {
+				fos.close();
+			}
+			catch (Exception e) {
+			}
+			fos = null;
+		}
 		return 0;
 	}
 	@Override
@@ -36,6 +56,13 @@ public class HlsHandler implements IURLProtocolHandler {
 	}
 	@Override
 	public int write(byte[] buf, int size) {
+		if(fos != null) {
+			try {
+				fos.write(buf, 0, size);
+			}
+			catch (Exception e) {
+			}
+		}
 		return 0;
 	}
 }

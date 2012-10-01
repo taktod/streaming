@@ -122,7 +122,7 @@
 			<sampleRate>44100</sampleRate>
 		</audio>
 	</tak>
-<!--	<hls>
+	<hls>
 		<name>640</name>
 		<video>
 			<codec>h264</codec>
@@ -204,5 +204,5 @@
 			<channel>2</channel>
 			<sampleRate>44100</sampleRate>
 		</audio>
-	</webM>-->
+	</webM>
 </streaming>

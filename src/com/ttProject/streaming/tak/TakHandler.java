@@ -56,7 +56,7 @@ public class TakHandler implements IURLProtocolHandler {
 	}
 	@Override
 	public int write(byte[] buf, int size) {
-		logger.info("書き込みがきました。" + outputDirectory);
+//		logger.info("書き込みがきました。" + outputDirectory);
 		if(fos != null) {
 			try {
 				fos.write(buf, 0, size);
