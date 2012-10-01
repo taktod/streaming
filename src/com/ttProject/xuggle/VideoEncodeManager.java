@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import com.ttProject.streaming.MediaManager;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IContainer;
+import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.IPacket;
 import com.xuggle.xuggler.IRational;
 import com.xuggle.xuggler.ISimpleMediaFile;
@@ -136,6 +137,7 @@ public class VideoEncodeManager {
 		}
 	}
 	public void encodeVideo(IVideoPicture picture) {
+		logger.info("映像のエンコードを実行します。");
 		int retval = -1;
 		IPacket outPacket = IPacket.make();
 		
@@ -143,13 +145,20 @@ public class VideoEncodeManager {
 		if(picture.isComplete()) {
 			retval = videoCoder.encodeVideo(outPacket, picture, 0);
 			if(retval <= 0) {
+				logger.info("videoコーダーの実行したところ、0以下が応答かえってきました。:" + retval);
+//				logger.info(IError.make(retval).toString());
 				return;
 			}
 			numBytesConsumed += retval;
 			if(outPacket.isComplete()) {
+				logger.info("パケットができあがりました。");
 				for(IContainer container : getContainers()) {
+					logger.info("コンテナにパケットを書き込みます。" + container.toString());
 					container.writePacket(outPacket);
 				}
+			}
+			else {
+				logger.info("packetができあがってません。");
 			}
 		}
 	}

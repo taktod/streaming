@@ -113,7 +113,9 @@ public class FlvManager {
 			// 処理続行は無理
 			return false;
 		}
+		logger.info("audioStreamId:" + audioStreamId + " videoStreamId:" + videoStreamId);
 		if(coder.getCodecType() == ICodec.Type.CODEC_TYPE_AUDIO) {
+			logger.info("オーディオデータが飛んできました。");
 			// 音声コーデック
 			if(inputAudioCoder == null) {
 				// 音声コーダーが設定されていないということは初めてのデータなので、処理する必要あり。
@@ -138,6 +140,7 @@ public class FlvManager {
 			inputAudioCoder = coder;
 		}
 		else if(coder.getCodecType() == ICodec.Type.CODEC_TYPE_VIDEO) {
+			logger.info("ビデオデータが飛んできました。");
 			// 映像コーデック
 			if(inputVideoCoder == null) {
 				// 映像コーダーが設定されていないということは初めてのデータなので、処理する必要あり。
@@ -190,6 +193,7 @@ public class FlvManager {
 	 */
 	public boolean execute(IPacket packet) {
 		int retval = -1;
+		logger.info("データの取得を実行します。");
 		// 入力コンテナからデータを引き出す。
 		retval = inputContainer.readNextPacket(packet);
 		if(retval < 0) {
@@ -204,13 +208,16 @@ public class FlvManager {
 		// 入力コーダーを確認します。
 		if(!checkInputCoder(packet)) {
 			// 処理すべきコーダーでなかった。
+			logger.info("処理すべきコーダーではないみたいです。");
 			return true;
 		}
 		int index = packet.getStreamIndex();
 		if(index == audioStreamId) {
+			logger.info("オーディオデータを変換します。");
 			executeAudio(packet);
 		}
 		else if(index == videoStreamId) {
+			logger.info("ビデオデータを変換します。");
 			executeVideo(packet);
 		}
 		else {

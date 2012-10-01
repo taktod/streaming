@@ -146,16 +146,24 @@ public class ConvertManager {
 			logger.info("mediaManagerを読み取りました。設定をはじめます。");
 			// コンテナを開き直します。
 			manager.resetupContainer();
-			setupVideoEncodeManagers(manager);
-			setupAudioEncodeManagers(manager);
+			if(videoFlg) {
+				setupVideoEncodeManagers(manager);
+			}
+			if(audioFlg) {
+				setupAudioEncodeManagers(manager);
+			}
 		}
-		for(VideoEncodeManager videoEncodeManager : videoEncodeManagers) {
-			videoEncodeManager.setupCoder();
-			setupVideoResamplerManagers(videoEncodeManager);
+		if(videoFlg) {
+			for(VideoEncodeManager videoEncodeManager : videoEncodeManagers) {
+				videoEncodeManager.setupCoder();
+				setupVideoResamplerManagers(videoEncodeManager);
+			}
 		}
-		for(AudioEncodeManager audioEncodeManager : audioEncodeManagers) {
-			audioEncodeManager.setupCoder();
-			setupAudioResamplerManagers(audioEncodeManager);
+		if(audioFlg) {
+			for(AudioEncodeManager audioEncodeManager : audioEncodeManagers) {
+				audioEncodeManager.setupCoder();
+				setupAudioResamplerManagers(audioEncodeManager);
+			}
 		}
 		// containerのheaderを書き込む必要あり。
 		for(MediaManager manager : mediaManagers) {
@@ -174,12 +182,15 @@ public class ConvertManager {
 		videoResampleManagers.add(videoResampleManager);
 	}
 	private void setupAudioResamplerManagers(AudioEncodeManager audioEncodeManager) {
+		logger.info("音声のencodeManagerを作成します。");
 		for(AudioResampleManager audioResampleManager : audioResampleManagers) {
 			if(audioResampleManager.addEncodeManager(audioEncodeManager)) {
+				logger.info("使い回し");
 				// 登録できたので、次に移動
 				return;
 			}
 		}
+		logger.info("新規");
 		AudioResampleManager audioResampleManager = new AudioResampleManager(audioEncodeManager);
 		audioResampleManagers.add(audioResampleManager);
 	}
