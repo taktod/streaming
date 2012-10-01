@@ -138,6 +138,7 @@ public abstract class MediaManager {
 	public void setVideoFrameRate(int frameRate) {
 		logger.info("videoFrameRate:" + frameRate);
 		streamInfo.setVideoFrameRate(IRational.make(1, frameRate));
+		logger.info("videoFrameRate check{}", streamInfo.getVideoFrameRate());
 	}
 	/**
 	 * globalクオリティー
@@ -261,7 +262,7 @@ public abstract class MediaManager {
 			}
 			return;
 		}
-		if("franerate".equalsIgnoreCase(name)) {
+		if("framerate".equalsIgnoreCase(name)) {
 			try {
 				setVideoFrameRate(Integer.parseInt(value));
 			}
