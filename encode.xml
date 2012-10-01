@@ -54,7 +54,7 @@
 			<sampleRate>44100</sampleRate>
 		</audio>
 	</tak>
-<!--	<tak>
+	<tak>
 		<name>800</name>
 		<video>
 			<codec>h264</codec>
@@ -122,7 +122,7 @@
 			<sampleRate>44100</sampleRate>
 		</audio>
 	</tak>
-<! - -	<hls>
+<!--	<hls>
 		<name>640</name>
 		<video>
 			<codec>h264</codec>
