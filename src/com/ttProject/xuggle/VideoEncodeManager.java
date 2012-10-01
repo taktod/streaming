@@ -72,6 +72,8 @@ public class VideoEncodeManager {
 	 */
 	public boolean addMediaManager(MediaManager mediaManager) {
 		ISimpleMediaFile streamInfo = mediaManager.getStreamInfo();
+		logger.info("a:{}", streamInfo.getVideoFrameRate());
+		logger.info("b:{}", getFrameRate());
 		// データが一致するか確認する。
 		if(streamInfo.getVideoCodec().equals(getCodec())
 		&& streamInfo.getVideoHeight() == getHeight()
