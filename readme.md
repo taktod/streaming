@@ -24,12 +24,24 @@ bitrateやsizeの違うストリームを同時に作成することが、目標
 
 com.ttProject.flazr.ex
  flazrの動作拡張
+
 com.ttProject.flazr
  flazrのダウンロード動作拡張
+
 com.ttProject.xuggle
  xuggleの変換動作
- flvのデータ入力まわりもここで管理します。
-com.ttProject.httpLiveStreaming
-com.ttProject.httpTakStreaming
-com.ttProject.httpWebMStreaming
 
+com.ttProject.xuggle.flv
+ flvの入力データ管理
+
+com.ttporject.streaming.*
+ それぞれの出力データの管理
+
+
+# 更新日記
+
+mpegts、flv、webmの各データの出力は一応できました。
+
+各ManagerのHandler作成部のパス[~/]ではじめるようにしてますが、それぞれのフルパスに書き換える必要があります。
+
+また、flashMediaServerにFMEでデータを送信したときに、transcodeWriterのaggregate時の動作を解いてやる必要があります。
