@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import com.ttProject.streaming.MediaManager;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IContainer;
-import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.IPacket;
 import com.xuggle.xuggler.IRational;
 import com.xuggle.xuggler.ISimpleMediaFile;
