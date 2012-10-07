@@ -99,7 +99,7 @@ public class VideoEncodeManager {
 		}
 		for(IContainer container : getContainers()) {
 			IStream outStream = null;
-			logger.info("container" + container.toString());
+			logger.info("container:" + container.toString());
 			if(videoCoder != null) {
 				outStream = container.addNewStream(videoCoder);
 			}

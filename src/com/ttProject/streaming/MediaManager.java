@@ -444,6 +444,9 @@ public abstract class MediaManager {
 		this.container = container;
 		return false;
 	}
+	/**
+	 * メディアデータのヘッダ情報を書き込みます。
+	 */
 	public void writeHeader() {
 		int retval = -1;
 		retval = this.container.writeHeader();

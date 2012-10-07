@@ -47,6 +47,8 @@ public class Transcoder implements Runnable {
 	 */
 	private void closeAll() {
 		// コンテナとか閉じる(変換処理が完了したときに動作します。)
+		ConvertManager convertManager = ConvertManager.getInstance();
+		convertManager.close();
 	}
 	/**
 	 * 変換の中枢動作
