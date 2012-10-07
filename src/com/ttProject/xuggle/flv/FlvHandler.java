@@ -62,7 +62,6 @@ public class FlvHandler implements IURLProtocolHandler {
 	 */
 	@Override
 	public int read(byte[] buf, int size) {
-		logger.info("データを読み込みます。");
 		// size分までしか読み込みする必要がないので、byteBufferとして、size分メモリーを準備しておく。
 		ByteBuffer readBuffer = ByteBuffer.allocate(size);
 		while(readBuffer.hasRemaining()) {
@@ -122,5 +121,4 @@ public class FlvHandler implements IURLProtocolHandler {
 		logger.error("入力用動作、出力要求されました。");
 		return -1;
 	}
-
 }

@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.jboss.netty.buffer.ChannelBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -229,12 +230,14 @@ public class ConvertManager {
 	 * @param flvAtom
 	 */
 	public void writeData(FlvAtom flvAtom) {
+		ChannelBuffer buf = flvAtom.write();
 		if(rawTakManager != null) {
 			// そのままのデータをhttpTakStreamingにする動作がのこっている場合はそこにデータを投げるようにしておく。
 		}
 		// コンバート動作にflvデータをまわす。
 		if(flvManager != null) {
-			flvManager.writeData(flvAtom);
+			flvManager.writeData(buf.toByteBuffer());
+//			flvManager.writeData(flvAtom);
 		}
 	}
 	public void executeAudio(IAudioSamples decodedSamples) {

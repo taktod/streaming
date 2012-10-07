@@ -35,12 +35,10 @@ public class FlvManager {
 	private int audioStreamId = -1;
 	private int videoStreamId = -1;
 	private FlvDataQueue inputDataQueue = null;
-	
 	public FlvManager() {
 		logger.info("flvManagerを初期化します。");
 		setup();
 		// TODO ここでコンテナを開こうとすると、フリーズします。(ffmpegからwaitがかかるらしい。)
-		// TODO コンテナについては、たぶんここでつくっても問題ないと思うので(transcoderでは動作threadの冒頭で実施していました。)実行しておく。
 //		openInputContainer();
 	}
 	/**
@@ -62,9 +60,7 @@ public class FlvManager {
 	 * flvのデータを受け付ける。
 	 * @param flvAtom
 	 */
-	public void writeData(FlvAtom flvAtom) {
-		// bufferデータのコピーを作成。
-		ByteBuffer buffer = flvAtom.write().toByteBuffer().duplicate();
+	public void writeData(ByteBuffer buffer) {
 		// queueに登録、あとはffmpegに任せる。
 		inputDataQueue.putTagData(buffer);
 	}
@@ -86,13 +82,12 @@ public class FlvManager {
 		inputFormat.setInputFormat("flv");
 		
 		// url, read動作, フォーマットはflv, dynamicに動作して, metaデータはなしという指定
-		logger.info("b");
+		inputContainer.setInputBufferLength(15); // readで読み込むデータ量を15バイトに制限しておく。
 		retval = inputContainer.open(url, IContainer.Type.READ, inputFormat, true, false);
 		if(retval < 0) {
 			logger.info("入力コンテナの開くのに失敗しました。");
 			throw new RuntimeException("入力用のURLを開くことができませんでした。");
 		}
-		logger.info("a");
 	}
 	/**
 	 * 入力コーダーを確認、必要なら生成する。
@@ -113,9 +108,7 @@ public class FlvManager {
 			// 処理続行は無理
 			return false;
 		}
-		logger.info("audioStreamId:" + audioStreamId + " videoStreamId:" + videoStreamId);
 		if(coder.getCodecType() == ICodec.Type.CODEC_TYPE_AUDIO) {
-			logger.info("オーディオデータが飛んできました。");
 			// 音声コーデック
 			if(inputAudioCoder == null) {
 				// 音声コーダーが設定されていないということは初めてのデータなので、処理する必要あり。
@@ -140,7 +133,6 @@ public class FlvManager {
 			inputAudioCoder = coder;
 		}
 		else if(coder.getCodecType() == ICodec.Type.CODEC_TYPE_VIDEO) {
-			logger.info("ビデオデータが飛んできました。");
 			// 映像コーデック
 			if(inputVideoCoder == null) {
 				// 映像コーダーが設定されていないということは初めてのデータなので、処理する必要あり。
@@ -193,7 +185,6 @@ public class FlvManager {
 	 */
 	public boolean execute(IPacket packet) {
 		int retval = -1;
-		logger.info("データの取得を実行します。");
 		// 入力コンテナからデータを引き出す。
 		retval = inputContainer.readNextPacket(packet);
 		if(retval < 0) {
@@ -204,20 +195,16 @@ public class FlvManager {
 			}
 			return false;
 		}
-		logger.info("コンテナからデータを取得しました。変換にすすみます。");
 		// 入力コーダーを確認します。
 		if(!checkInputCoder(packet)) {
-			// 処理すべきコーダーでなかった。
-			logger.info("処理すべきコーダーではないみたいです。");
+//			logger.info("処理すべきコーダーではないみたいです。");
 			return true;
 		}
 		int index = packet.getStreamIndex();
 		if(index == audioStreamId) {
-			logger.info("オーディオデータを変換します。");
 			executeAudio(packet);
 		}
 		else if(index == videoStreamId) {
-			logger.info("ビデオデータを変換します。");
 			executeVideo(packet);
 		}
 		else {
