@@ -47,7 +47,6 @@ public class AudioEncodeManager {
 		setBitRate(streamInfo.getAudioBitRate());
 		setSampleRate(streamInfo.getAudioSampleRate());
 		setChannels(streamInfo.getAudioChannels());
-		logger.info(codec.toString());
 	}
 	/**
 	 * 対象メディアマネージャーが合致する場合は登録する。
@@ -101,7 +100,7 @@ public class AudioEncodeManager {
 		while(numSamplesConsumed < samples.getNumSamples()) {
 			retval = audioCoder.encodeAudio(outPacket, samples, numSamplesConsumed);
 			if(retval <= 0) {
-//				logger.warn("audioのエンコードに失敗しましたが、無視して続けます。");
+				logger.warn("audioのエンコードに失敗しましたが、無視して続けます。");
 				break;
 			}
 			numSamplesConsumed += retval;
@@ -146,5 +145,4 @@ public class AudioEncodeManager {
 	private void setChannels(int channels) {
 		this.channels = channels;
 	}
-	
 }

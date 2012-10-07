@@ -20,6 +20,7 @@ import com.xuggle.xuggler.IStreamCoder;
  */
 public class AudioResampleManager {
 	/** ロガー */
+	@SuppressWarnings("unused")
 	private final Logger logger = LoggerFactory.getLogger(AudioResampleManager.class);
 	private IAudioResampler resampler = null;
 	private Set<AudioEncodeManager> encodeManagers = new HashSet<AudioEncodeManager>();
@@ -32,7 +33,6 @@ public class AudioResampleManager {
 		encodeManagers.add(encodeManager);
 		setSampleRate(audioCoder.getSampleRate());
 		setChannels(audioCoder.getChannels());
-		logger.info("resampler:" + sampleRate + ":" + channels);
 	}
 	public boolean addEncodeManager(AudioEncodeManager encodeManager) {
 		IStreamCoder audioCoder = encodeManager.getAudioCoder();
@@ -75,6 +75,7 @@ public class AudioResampleManager {
 	 * @param samples
 	 */
 	private void setupResampler(IAudioSamples samples) {
+		// リサンプラーがのこっている場合は消す処理をいれた方がいいか？それともnativeの方でgcが橋ってきちんと消えるか？
 //		if(resampler != null) {
 //			resampler.delete();
 //		}
@@ -98,6 +99,5 @@ public class AudioResampleManager {
 	private void setChannels(int channels) {
 		this.channels = channels;
 	}
-	
 }
 

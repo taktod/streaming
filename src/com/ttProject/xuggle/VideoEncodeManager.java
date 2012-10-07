@@ -62,7 +62,6 @@ public class VideoEncodeManager {
 		setProperties(mediaManager.getVideoProperty());
 		setFlags(mediaManager.getVideoFlags());
 		setTimeBase(streamInfo.getVideoTimeBase());
-		logger.info(width + ":" + height);
 	}
 	/**
 	 * 対象のメディアマネージャーが合致する場合は登録する。
@@ -71,8 +70,6 @@ public class VideoEncodeManager {
 	 */
 	public boolean addMediaManager(MediaManager mediaManager) {
 		ISimpleMediaFile streamInfo = mediaManager.getStreamInfo();
-		logger.info("a:{}", streamInfo.getVideoFrameRate());
-		logger.info("b:{}", getFrameRate());
 		// データが一致するか確認する。
 		if(streamInfo.getVideoCodec().equals(getCodec())
 		&& streamInfo.getVideoHeight() == getHeight()
@@ -96,7 +93,6 @@ public class VideoEncodeManager {
 	 * 登録されている情報でcoderを作成する。
 	 */
 	public void setupCoder() {
-		logger.info("コーダーをセットアップします。" + width + ":" + height);
 		ICodec outCodec = ICodec.findEncodingCodec(getCodec());
 		if(outCodec == null) {
 			throw new RuntimeException("video出力用のコーデックを取得することができませんでした。");
@@ -105,11 +101,9 @@ public class VideoEncodeManager {
 			IStream outStream = null;
 			logger.info("container" + container.toString());
 			if(videoCoder != null) {
-				logger.info("コーダーから作成する。");
 				outStream = container.addNewStream(videoCoder);
 			}
 			else {
-				logger.info("ICodecから生成する。");
 				outStream = container.addNewStream(outCodec);
 			}
 			if(outStream == null) {
@@ -138,7 +132,6 @@ public class VideoEncodeManager {
 		}
 	}
 	public void encodeVideo(IVideoPicture picture) {
-		logger.info("映像のエンコードを実行します。");
 		int retval = -1;
 		IPacket outPacket = IPacket.make();
 		
@@ -152,9 +145,7 @@ public class VideoEncodeManager {
 			}
 			numBytesConsumed += retval;
 			if(outPacket.isComplete()) {
-				logger.info("パケットができあがりました。");
 				for(IContainer container : getContainers()) {
-					logger.info("コンテナにパケットを書き込みます。" + container.toString());
 					container.writePacket(outPacket);
 				}
 			}

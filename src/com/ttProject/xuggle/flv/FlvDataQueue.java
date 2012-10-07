@@ -46,8 +46,7 @@ public class FlvDataQueue {
 		ByteBuffer result = null;
 		try {
 			// takeを利用して、データが存在しない場合は待つようにしておく。
-			result = dataQueue.take();
-//			logger.info(Utils.toHex(result.array()));
+			result = dataQueue.take(); // 一度draintoをつかって、邪魔にならないように調整したが、やっぱりとめておく。必要ないと思う。
 			return result;
 		}
 		catch (InterruptedException e) {

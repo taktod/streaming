@@ -22,6 +22,7 @@ import com.xuggle.xuggler.IVideoResampler;
  */
 public class VideoResampleManager {
 	/** ロガー */
+	@SuppressWarnings("unused")
 	private final Logger logger = LoggerFactory.getLogger(VideoResampleManager.class);
 	private IVideoResampler resampler = null;
 	private Set<VideoEncodeManager> encodeManagers = new HashSet<VideoEncodeManager>();
@@ -36,7 +37,6 @@ public class VideoResampleManager {
 		setPixelType(videoCoder.getPixelType());
 		setWidth(videoCoder.getWidth());
 		setHeight(videoCoder.getHeight());
-		logger.info(width + ":" + height);
 	}
 	public boolean addEncodeManager(VideoEncodeManager encodeManager) {
 		IStreamCoder videoCoder = encodeManager.getVideoCoder();
