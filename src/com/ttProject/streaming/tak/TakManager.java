@@ -49,10 +49,26 @@ public class TakManager extends MediaManager{
 		}
 		return true;
 	}
+	/**
+	 * コンテナを再生成する動作
+	 */
 	@Override
 	public boolean resetupContainer() {
 		ConvertManager convertManager = ConvertManager.getInstance();
 		String url = TakHandlerFactory.DEFAULT_PROTOCOL + ":" + convertManager.getName() + "_" + getName();
 		return resetupContainer(url, "flv");
+	}
+	// 以下生ストリーム用の処理
+	/**
+	 * 
+	 */
+	public void writRawHeader() {
+		// flvのheaderデータを書き込む
+	}
+	/**
+	 * 
+	 */
+	public void writeRawData() {
+		// flvのデータを書き込み
 	}
 }
