@@ -32,7 +32,7 @@ public class VideoEncodeManager {
 	private IStreamCoder videoCoder = null;
 	/** 処理対象コンテナ */
 	private Set<IContainer> containers = new HashSet<IContainer>();
-
+	/** 処理対象コーデック情報 */
 	private ICodec.ID codec;
 	private int width = -1;
 	private int height = -1;
@@ -131,6 +131,10 @@ public class VideoEncodeManager {
 			}
 		}
 	}
+	/**
+	 * エンコードします。
+	 * @param picture
+	 */
 	public void encodeVideo(IVideoPicture picture) {
 		int retval = -1;
 		IPacket outPacket = IPacket.make();
@@ -140,7 +144,6 @@ public class VideoEncodeManager {
 			retval = videoCoder.encodeVideo(outPacket, picture, 0);
 			if(retval <= 0) {
 				logger.info("videoコーダーの実行したところ、0以下が応答かえってきました。:" + retval);
-//				logger.info(IError.make(retval).toString());
 				return;
 			}
 			numBytesConsumed += retval;
@@ -149,27 +152,26 @@ public class VideoEncodeManager {
 					container.writePacket(outPacket);
 				}
 			}
-			else {
-				logger.info("packetができあがってません。");
-			}
 		}
 	}
 	/**
 	 * コンテナを追加する。
 	 * @param container
 	 */
-	public void addContainer(IContainer container) {
-		if(container == null) {
-			logger.info("コンテナを追加します。nullだった・・");
-		}
-		else {
-			logger.info("コンテナを追加します。" + container.toString());
-		}
+	private void addContainer(IContainer container) {
 		containers.add(container);
 	}
+	/**
+	 * 映像コーダーを参照
+	 * @return
+	 */
 	public IStreamCoder getVideoCoder() {
 		return videoCoder;
 	}
+	/**
+	 * 内部保持コンテナを参照
+	 * @return
+	 */
 	private Set<IContainer> getContainers() {
 		return containers;
 	}

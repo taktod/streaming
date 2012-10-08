@@ -94,6 +94,10 @@ public class AudioEncodeManager {
 			}
 		}
 	}
+	/**
+	 * エンコードします。
+	 * @param samples
+	 */
 	public void encodeAudio(IAudioSamples samples) {
 		int retval = -1;
 		IPacket outPacket = IPacket.make();

@@ -24,12 +24,18 @@ public class VideoResampleManager {
 	/** ロガー */
 	@SuppressWarnings("unused")
 	private final Logger logger = LoggerFactory.getLogger(VideoResampleManager.class);
+	/** リサンプラー */
 	private IVideoResampler resampler = null;
+	/** 紐付いているEncodeManager */
 	private Set<VideoEncodeManager> encodeManagers = new HashSet<VideoEncodeManager>();
-	// 変換目標
+	/** 変換目標データ */
 	private IPixelFormat.Type pixelType;
 	private int width;
 	private int height;
+	/**
+	 * コンストラクタ
+	 * @param encodeManager
+	 */
 	public VideoResampleManager(VideoEncodeManager encodeManager) {
 		// encodeManagerから必要なリサンプルマネージャーを作成する。
 		IStreamCoder videoCoder = encodeManager.getVideoCoder();
@@ -38,6 +44,11 @@ public class VideoResampleManager {
 		setWidth(videoCoder.getWidth());
 		setHeight(videoCoder.getHeight());
 	}
+	/**
+	 * 同じ処理で済むencodeManagerを追加
+	 * @param encodeManager
+	 * @return true:追加可能な場合 false:リサンプルしたデータが合わない場合
+	 */
 	public boolean addEncodeManager(VideoEncodeManager encodeManager) {
 		IStreamCoder videoCoder = encodeManager.getVideoCoder();
 		if(videoCoder.getPixelType().equals(getPixelType())
@@ -91,6 +102,10 @@ public class VideoResampleManager {
 			throw new RuntimeException("videoリサンプラーの作成に失敗しました。");
 		}
 	}
+	/**
+	 * 紐付いているEncodeManagerを参照
+	 * @return
+	 */
 	public Set<VideoEncodeManager> getEncodeManagers() {
 		return encodeManagers;
 	}
