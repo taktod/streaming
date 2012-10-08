@@ -42,6 +42,25 @@ com.ttporject.streaming.*
 
 mpegts、flv、webmの各データの出力は一応できました。
 
-各ManagerのHandler作成部のパス[~/]ではじめるようにしてますが、それぞれのフルパスに書き換える必要があります。
+各ManagerのHandler作成部のパス[/home/xxxx/]ではじめるようにしてますが、環境にあわせて適宜書き換えてください。
 
 また、flashMediaServerにFMEでデータを送信したときに、transcodeWriterのaggregate時の動作を解いてやる必要があります。
+
+h.264の入力ソースを使うと、動作にエラーが発生することがあったのですが、対処しました。
+
+2012/10/03
+多重コンバート動作成功
+http://poepoemix.blogspot.jp/2012/10/blog-post.html
+
+2012/10/07
+入力エラー(AVC nal sizeなんとかというエラー)対処
+http://poepoemix.blogspot.jp/2012/10/blog-post_7.html
+http://poepoemix.blogspot.jp/2012/10/blog-post_4308.html
+
+2012/10/08
+コンテナ作成部、エンコード部マルチスレッド化
+http://poepoemix.blogspot.jp/2012/10/blog-post_4868.html
+(メモ)ffmpegの動作部分がシングルスレッドになっているのか、マルチスレッド化してもたいして速くなりませんでした。
+
+2012/10/08
+flvの生ストリーム出力動作をtakに追加
