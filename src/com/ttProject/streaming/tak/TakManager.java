@@ -1,7 +1,10 @@
 package com.ttProject.streaming.tak;
 
+import java.nio.ByteBuffer;
+
 import org.w3c.dom.Node;
 
+import com.flazr.io.flv.FlvAtom;
 import com.ttProject.streaming.MediaManager;
 import com.ttProject.util.DomHelper;
 import com.ttProject.xuggle.ConvertManager;
@@ -40,7 +43,7 @@ public class TakManager extends MediaManager{
 	@Override
 	public boolean setup() {
 		// ここで実行することは、streamURLの登録とcontainerを開くこと(コンテナを開く動作はしなくてもいいかも)
-		handler = new TakHandler("~/test" + getName() + ".flv"); // handlerをつくっておく。
+		handler = new TakHandler("/home/xxxx/test" + getName() + ".flv"); // handlerをつくっておく。
 		if(!isRawStream()) {
 			// 生ストリームでない場合はTakHandlerの登録とFactoryの作成が必要。
 			TakHandlerFactory factory = TakHandlerFactory.getFactory();
@@ -60,15 +63,21 @@ public class TakManager extends MediaManager{
 	}
 	// 以下生ストリーム用の処理
 	/**
-	 * 
+	 * 生ストリームのheader情報を書き込み
 	 */
-	public void writRawHeader() {
+	public void writeRawHeader() {
 		// flvのheaderデータを書き込む
+		writeRawData(FlvAtom.flvHeader().toByteBuffer());
 	}
 	/**
-	 * 
+	 * 生ストリームのデータ情報を書き込み
 	 */
-	public void writeRawData() {
+	public void writeRawData(ByteBuffer data) {
 		// flvのデータを書き込み
+		ByteBuffer buffer = data.duplicate();
+		int length = buffer.limit();
+		byte[] buf = new byte[length];
+		buffer.get(buf);
+		handler.write(buf, length);
 	}
 }

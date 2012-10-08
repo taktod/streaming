@@ -1,5 +1,6 @@
 package com.ttProject.xuggle;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -8,7 +9,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import org.jboss.netty.buffer.ChannelBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,8 +43,10 @@ public class ConvertManager {
 	private TakManager rawTakManager = null;
 	/** コンバートマネージャー保持 */
 	private Set<MediaManager> mediaManagers = new HashSet<MediaManager>();
+	/** メディアEncodeManager保持 */
 	private Set<VideoEncodeManager> videoEncodeManagers = new HashSet<VideoEncodeManager>();
 	private Set<AudioEncodeManager> audioEncodeManagers = new HashSet<AudioEncodeManager>();
+	/** メディアResampleManager保持 */
 	private Set<VideoResampleManager> videoResampleManagers = new HashSet<VideoResampleManager>();
 	private Set<AudioResampleManager> audioResampleManagers = new HashSet<AudioResampleManager>();
 	/** コンバート用のflvManager */
@@ -100,6 +102,7 @@ public class ConvertManager {
 					// 生データのストリーミングが存在する。
 					rawTakManager = takManager;
 					// TODO このタイミングでheaderを追加しておいてOK
+					rawTakManager.writeRawHeader();
 					continue;
 				}
 			}
@@ -134,6 +137,7 @@ public class ConvertManager {
 	}
 	/**
 	 * 関連づいている出力コンテナを再初期化する。
+	 * TODO 処理長過ぎ、切り分けしておきたいところ
 	 * @param audio 音声があるかフラグ
 	 * @param video 映像があるかフラグ
 	 */
@@ -144,28 +148,18 @@ public class ConvertManager {
 		audioEncodeManagers.clear();
 		videoResampleManagers.clear();
 		audioResampleManagers.clear();
-		// TODO 2の対処:ここのセットアップ動作をマルチスレッド化しておく必要あり。
-		// 以下マルチスレッドで対処する。
-		// コンテナの再構築を実行する。
-		List<Future<?>> futures = new ArrayList<Future<?>>();
+		// コンテナの再構築を実行する。(マルチスレッド)
+		List<Future<?>> list = new ArrayList<Future<?>>();
 		for(final MediaManager manager : mediaManagers) {
-			futures.add(executors.submit(new Runnable() {
+			list.add(executors.submit(new Runnable() {
 				@Override
 				public void run() {
 					manager.resetupContainer();
 				}
 			}));
 		}
-		// エンコーダーのセットアップがおわるまで待機します。
-		for(Future<?> future : futures) {
-			try {
-				future.get();
-			}
-			catch (Exception e) {
-				throw new RuntimeException("コンテナ再構築に失敗しました。");
-			}
-		}
-		futures.clear();
+		waitForFutures(list);
+		// エンコーダー設定の階層構造を再構築する。
 		for(MediaManager manager : mediaManagers) {
 			logger.info("mediaManagerを読み取りました。設定をはじめます。");
 			if(videoFlg) {
@@ -175,10 +169,10 @@ public class ConvertManager {
 				setupAudioEncodeManagers(manager);
 			}
 		}
-		// エンコーダーの再構築を実行する。
+		// エンコード用のStreamCoderを構築する。(マルチスレッド)
 		if(videoFlg) {
 			for(final VideoEncodeManager videoEncodeManager : videoEncodeManagers) {
-				futures.add(executors.submit(new Runnable() {
+				list.add(executors.submit(new Runnable() {
 					@Override
 					public void run() {
 						videoEncodeManager.setupCoder();
@@ -188,24 +182,16 @@ public class ConvertManager {
 		}
 		if(audioFlg) {
 			for(final AudioEncodeManager audioEncodeManager : audioEncodeManagers) {
-				futures.add(executors.submit(new Runnable() {
+				list.add(executors.submit(new Runnable() {
 					@Override
 					public void run() {
 						audioEncodeManager.setupCoder();
 					}
 				}));
-				audioEncodeManager.setupCoder();
 			}
 		}
-		for(Future<?> future : futures) {
-			try {
-				future.get();
-			}
-			catch (Exception e) {
-				throw new RuntimeException("コーダー再生成に失敗しました。");
-			}
-		}
-		// リサンプラーの構築では、coderが必要なので、コーダーが開いてから処理する。
+		waitForFutures(list);
+		// リサンプラーの階層構造の構築。
 		if(videoFlg) {
 			for(VideoEncodeManager videoEncodeManager : videoEncodeManagers) {
 				setupVideoResamplerManagers(videoEncodeManager);
@@ -216,12 +202,16 @@ public class ConvertManager {
 				setupAudioResamplerManagers(audioEncodeManager);
 			}
 		}
-		// containerのheaderを書き込む必要あり。
+		// TODO containerのheaderの書き込み処理(ここもマルチスレッド化して大丈夫だが、とりあえずさぼっておく。)
 		for(MediaManager manager : mediaManagers) {
 			logger.info("headerを書き込みます。{}", manager);
 			manager.writeHeader();
 		}
 	}
+	/**
+	 * 映像リサンプラーの階層構造を構築する
+	 * @param videoEncodeManager
+	 */
 	private void setupVideoResamplerManagers(VideoEncodeManager videoEncodeManager) {
 		for(VideoResampleManager videoResampleManager : videoResampleManagers) {
 			if(videoResampleManager.addEncodeManager(videoEncodeManager)) {
@@ -232,6 +222,10 @@ public class ConvertManager {
 		VideoResampleManager videoResampleManager = new VideoResampleManager(videoEncodeManager);
 		videoResampleManagers.add(videoResampleManager);
 	}
+	/**
+	 * 音声リサンプラーの階層構造を構築する。
+	 * @param audioEncodeManager
+	 */
 	private void setupAudioResamplerManagers(AudioEncodeManager audioEncodeManager) {
 		logger.info("音声のencodeManagerを作成します。");
 		for(AudioResampleManager audioResampleManager : audioResampleManagers) {
@@ -245,6 +239,10 @@ public class ConvertManager {
 		AudioResampleManager audioResampleManager = new AudioResampleManager(audioEncodeManager);
 		audioResampleManagers.add(audioResampleManager);
 	}
+	/**
+	 * 映像エンコーダーの階層構造を構築する。
+	 * @param manager
+	 */
 	private void setupVideoEncodeManagers(MediaManager manager) {
 		logger.info("映像のencodeManagerを作成します。");
 		// それぞれに対してvideoCoderとaudioCoderを必要であれば開く必要あり。
@@ -260,6 +258,10 @@ public class ConvertManager {
 		VideoEncodeManager videoEncodeManager = new VideoEncodeManager(manager);
 		videoEncodeManagers.add(videoEncodeManager);
 	}
+	/**
+	 * 音声エンコーダーの階層構造を構築する。
+	 * @param manager
+	 */
 	private void setupAudioEncodeManagers(MediaManager manager) {
 		logger.info("音声のencodeManagerを作成します。");
 		for(AudioEncodeManager audioEncodeManager : audioEncodeManagers) {
@@ -272,24 +274,25 @@ public class ConvertManager {
 		AudioEncodeManager audioEncodeManager = new AudioEncodeManager(manager);
 		audioEncodeManagers.add(audioEncodeManager);
 	}
-	public void writeHeaderData() {
-		
-	}
 	/**
 	 * flvデータをサーバーから受け取ったときの動作
 	 * @param flvAtom
 	 */
 	public void writeData(FlvAtom flvAtom) {
-		ChannelBuffer buf = flvAtom.write();
+		ByteBuffer buffer = flvAtom.write().toByteBuffer();
 		if(rawTakManager != null) {
 			// そのままのデータをhttpTakStreamingにする動作がのこっている場合はそこにデータを投げるようにしておく。
+			rawTakManager.writeRawData(buffer);
 		}
 		// コンバート動作にflvデータをまわす。
 		if(flvManager != null) {
-			flvManager.writeData(buf.toByteBuffer());
-//			flvManager.writeData(flvAtom);
+			flvManager.writeData(buffer);
 		}
 	}
+	/**
+	 * 音声の変換処理
+	 * @param decodedSamples
+	 */
 	public void executeAudio(IAudioSamples decodedSamples) {
 		// データをリサンプルする。
 		for(AudioResampleManager audioResampleManager : audioResampleManagers) {
@@ -306,18 +309,17 @@ public class ConvertManager {
 					}
 				}));
 			}
-			for(Future<?> f : list) {
-				try {
-					f.get();
-				}
-				catch (Exception e) {
-				}
-			}
+			waitForFutures(list);
 		}
 	}
+	/**
+	 * 映像の変換処理
+	 * @param decodedPicture
+	 */
 	public void executeVideo(IVideoPicture decodedPicture) {
-		// TODO 入れ子構造にすると、中途でつまってしまうみたいです。(executorのthreadが枯渇する。)
-		// fixedではなくcachedとかつかえばいいかもしれませんけど。
+		/*
+		 * メモ：リサンプルもふくめてマルチスレッド化しようとしたところ、threadが枯渇してデッドロックになっちゃった。
+		 */
 		// データをリサンプルする。
 		for(VideoResampleManager videoResampleManager : videoResampleManagers) {
 			// リサンプルをかける。
@@ -333,13 +335,21 @@ public class ConvertManager {
 					}
 				}));
 			}
-			for(Future<?> f : list) {
-				try {
-					f.get();
-				}
-				catch (Exception e) {
-				}
+			waitForFutures(list);
+		}
+	}
+	/**
+	 * マルチスレッド時の待機処理(汎用)
+	 * @param list
+	 */
+	private void waitForFutures(List<Future<?>> list) {
+		for(Future<?> f : list) {
+			try {
+				f.get();
+			}
+			catch (Exception e) {
 			}
 		}
+		list.clear();
 	}
 }
