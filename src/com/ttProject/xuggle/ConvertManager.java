@@ -291,28 +291,54 @@ public class ConvertManager {
 		}
 	}
 	public void executeAudio(IAudioSamples decodedSamples) {
-		IAudioSamples resampledData;
 		// データをリサンプルする。
 		for(AudioResampleManager audioResampleManager : audioResampleManagers) {
-			// TODO ここもマルチスレッド化しておく。
 			// リサンプルかける。
-			resampledData = audioResampleManager.resampleAudio(decodedSamples);
-			for(AudioEncodeManager audioEncodeManager : audioResampleManager.getEncodeManagers()) {
+			List<Future<?>> list = new ArrayList<Future<?>>();
+			final IAudioSamples resampledData = audioResampleManager.resampleAudio(decodedSamples);
+			// エンコード処理をマルチスレッド化しておく。
+			for(final AudioEncodeManager audioEncodeManager : audioResampleManager.getEncodeManagers()) {
 				// エンコードを実行する。
-				audioEncodeManager.encodeAudio(resampledData);
+				list.add(executors.submit(new Runnable() {
+					@Override
+					public void run() {
+						audioEncodeManager.encodeAudio(resampledData);
+					}
+				}));
+			}
+			for(Future<?> f : list) {
+				try {
+					f.get();
+				}
+				catch (Exception e) {
+				}
 			}
 		}
 	}
 	public void executeVideo(IVideoPicture decodedPicture) {
-		IVideoPicture resampledData;
+		// TODO 入れ子構造にすると、中途でつまってしまうみたいです。(executorのthreadが枯渇する。)
+		// fixedではなくcachedとかつかえばいいかもしれませんけど。
 		// データをリサンプルする。
 		for(VideoResampleManager videoResampleManager : videoResampleManagers) {
-			// TODO ここもマルチスレッド化しておく。
 			// リサンプルをかける。
-			resampledData = videoResampleManager.resampleVideo(decodedPicture);
-			for(VideoEncodeManager videoEncodeManager : videoResampleManager.getEncodeManagers()) {
+			List<Future<?>> list = new ArrayList<Future<?>>();
+			final IVideoPicture resampledData = videoResampleManager.resampleVideo(decodedPicture);
+			// エンコード処理をマルチスレッド化しておく。
+			for(final VideoEncodeManager videoEncodeManager : videoResampleManager.getEncodeManagers()) {
 				// エンコード実行
-				videoEncodeManager.encodeVideo(resampledData);
+				list.add(executors.submit(new Runnable() {
+					@Override
+					public void run() {
+						videoEncodeManager.encodeVideo(resampledData);
+					}
+				}));
+			}
+			for(Future<?> f : list) {
+				try {
+					f.get();
+				}
+				catch (Exception e) {
+				}
 			}
 		}
 	}
