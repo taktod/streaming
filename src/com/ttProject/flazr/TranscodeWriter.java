@@ -22,14 +22,12 @@ public class TranscodeWriter implements RtmpWriter {
 	
 	/** 各チャンネルの時刻保持 */
 	private final int[] channelTimes = new int[RtmpHeader.MAX_CHANNEL_ID];
+	/** 主チャンネル保持 */
 	private int primaryChannel = -1;
 
 	/** 動作名 */
 	private final String name;
 
-	/** 変換動作管理マネージャー */
-	private ConvertManager convertManager;
-	
 	/** 開始時の動作タイムスタンプ */
 	private int startTime = -1;
 	
@@ -61,7 +59,7 @@ public class TranscodeWriter implements RtmpWriter {
 	 */
 	public void initialize() {
 		try {
-			convertManager = ConvertManager.getInstance();
+			ConvertManager convertManager = ConvertManager.getInstance();
 			convertManager.initialize(name);
 			startTime = -1;
 		}
@@ -111,6 +109,7 @@ public class TranscodeWriter implements RtmpWriter {
 		header.setTime(header.getTime() - startTime);
 		// このコンバートにそった状態になったところで、コンバート管理にデータをまわす。
 		// 管理側でflvの情報を抜き出したりすると思うのでまだflazrの影響下においておく。
+		ConvertManager convertManager = ConvertManager.getInstance();
 		convertManager.writeData(flvAtom);
 	}
 	/**

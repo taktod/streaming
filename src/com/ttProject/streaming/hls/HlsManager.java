@@ -11,7 +11,7 @@ public class HlsManager extends MediaManager {
 	}
 	@Override
 	public boolean setup() {
-		HlsHandler handler = new HlsHandler("~/test" + getName() + ".ts");
+		HlsHandler handler = new HlsHandler("/home/xxxx/test" + getName() + ".ts");
 		HlsHandlerFactory factory = HlsHandlerFactory.getFactory();
 		ConvertManager convertManager = ConvertManager.getInstance();
 		factory.registerHandler(convertManager.getName() + "_" + getName(), handler);

@@ -11,7 +11,7 @@ public class WebMManager extends MediaManager {
 	}
 	@Override
 	public boolean setup() {
-		WebMHandler handler = new WebMHandler("~/test" + getName() +".webm");
+		WebMHandler handler = new WebMHandler("/home/xxxx/test" + getName() +".webm");
 		WebMHandlerFactory factory = WebMHandlerFactory.getFactory();
 		ConvertManager convertManager = ConvertManager.getInstance();
 		factory.registerHandler(convertManager.getName() + "_" + getName(), handler);

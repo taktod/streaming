@@ -22,18 +22,28 @@ public class AudioResampleManager {
 	/** ロガー */
 	@SuppressWarnings("unused")
 	private final Logger logger = LoggerFactory.getLogger(AudioResampleManager.class);
+	/** リサンプラー */
 	private IAudioResampler resampler = null;
+	/** 紐付いているEncodeManager */
 	private Set<AudioEncodeManager> encodeManagers = new HashSet<AudioEncodeManager>();
-	// 変換目標
+	/** 変換目標データ */
 	private int sampleRate;
 	private int channels;
-
+	/**
+	 * コンストラクタ
+	 * @param encodeManager
+	 */
 	public AudioResampleManager(AudioEncodeManager encodeManager) {
 		IStreamCoder audioCoder = encodeManager.getAudioCoder();
 		encodeManagers.add(encodeManager);
 		setSampleRate(audioCoder.getSampleRate());
 		setChannels(audioCoder.getChannels());
 	}
+	/**
+	 * 同じ処理で済むencodeManagerを追加
+	 * @param encodeManager
+	 * @return true:追加可能な場合 false:リサンプルしたデータが合わない場合
+	 */
 	public boolean addEncodeManager(AudioEncodeManager encodeManager) {
 		IStreamCoder audioCoder = encodeManager.getAudioCoder();
 		if(audioCoder.getSampleRate() == getSampleRate()
@@ -84,6 +94,10 @@ public class AudioResampleManager {
 			throw new RuntimeException("audioリサンプラーの作成に失敗しました。");
 		}
 	}
+	/**
+	 * 紐付いているEncodeManagerを参照
+	 * @return
+	 */
 	public Set<AudioEncodeManager> getEncodeManagers() {
 		return encodeManagers;
 	}

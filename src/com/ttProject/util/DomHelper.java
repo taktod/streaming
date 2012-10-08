@@ -4,6 +4,10 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+/**
+ * DOMを扱う上での補助動作
+ * @author taktod
+ */
 public class DomHelper {
 	/**
 	 * <a test="b">

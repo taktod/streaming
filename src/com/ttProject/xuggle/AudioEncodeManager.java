@@ -31,6 +31,7 @@ public class AudioEncodeManager {
 	private IStreamCoder audioCoder = null;
 	/** 処理対象コンテナ */
 	private Set<IContainer> containers = new HashSet<IContainer>();
+	/** 処理対象コーデック情報 */
 	private ICodec.ID codec;
 	private int bitRate;
 	private int sampleRate;
@@ -112,12 +113,24 @@ public class AudioEncodeManager {
 			}
 		}
 	}
-	public void addContainer(IContainer container) {
+	/**
+	 * コンテナ追加動作
+	 * @param container
+	 */
+	private void addContainer(IContainer container) {
 		containers.add(container);
 	}
+	/**
+	 * 音声コーダーを参照
+	 * @return
+	 */
 	public IStreamCoder getAudioCoder() {
 		return audioCoder;
 	}
+	/**
+	 * 内部保持コンテナを参照
+	 * @return
+	 */
 	private Set<IContainer> getContainers() {
 		return containers;
 	}

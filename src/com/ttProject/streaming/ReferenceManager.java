@@ -13,6 +13,7 @@ import org.w3c.dom.Node;
 public class ReferenceManager {
 	/** データを保持するマップ */
 	private static Map<String, ReferenceManager> referenceMap = new HashMap<String, ReferenceManager>();
+	/** リファレンスのノードデータ */
 	private Node node;
 	/**
 	 * リファレンスデータを参照する。
@@ -32,7 +33,7 @@ public class ReferenceManager {
 		NamedNodeMap attributes = node.getAttributes();
 		Node n = attributes.getNamedItem("id");
 		if(n == null) {
-			// 設定がおかしい。s
+			// 設定がおかしい。
 			return;
 		}
 		this.node = node;
