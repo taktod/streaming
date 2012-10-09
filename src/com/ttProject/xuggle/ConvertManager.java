@@ -88,7 +88,6 @@ public class ConvertManager {
 		EncodeXmlAnalizer analizer = EncodeXmlAnalizer.getInstance();
 		// このマネージャーリストにそって、コンバートを実行する必要がある。
 		List<MediaManager> mediaManagers = analizer.getManagers(); // 作成された、MediaManagerリストを取得する
-		
 		this.mediaManagers.clear();
 		logger.info("managerの中身を確認していきます。");
 		// managerの内容を確認する。

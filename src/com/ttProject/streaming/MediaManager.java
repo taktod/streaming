@@ -196,6 +196,10 @@ public abstract class MediaManager {
 		}
 		name = DomHelper.getNodeValue(node, "name");
 	}
+	/**
+	 * xmlの内容を解析する。
+	 * @param node
+	 */
 	private void analize(Node node) {
 		String nodeName = node.getNodeName();
 		if(nodeName.equalsIgnoreCase("audio")) {
@@ -211,6 +215,10 @@ public abstract class MediaManager {
 		}
 		// 解析不可
 	}
+	/**
+	 * 映像の設定データを解析します。
+	 * @param node
+	 */
 	private void setupVideo(Node node) {
 		// video情報を設定していく。
 		// attributeを検索して合致するものがあったら、それを設定に採用。
@@ -230,6 +238,12 @@ public abstract class MediaManager {
 			}
 		}
 	}
+	/**
+	 * 映像解析の内部処理
+	 * @param name
+	 * @param value
+	 * @param node
+	 */
 	private void setupVideoElement(String name, String value, Node node) {
 		if(name == null) {
 			return;
@@ -305,6 +319,10 @@ public abstract class MediaManager {
 			return;
 		}
 	}
+	/**
+	 * 音声の設定データを解析します。
+	 * @param node
+	 */
 	private void setupAudio(Node node) {
 		// audio情報を設定していく。
 		// attributeを検索して、合致するものがあったら、それを設定に採用。
@@ -324,6 +342,12 @@ public abstract class MediaManager {
 			}
 		}
 	}
+	/**
+	 * 音声解析の内部処理
+	 * @param name
+	 * @param value
+	 * @param node
+	 */
 	private void setupAudioElement(String name, String value) {
 		if(name == null || value == null || value.trim().equals("")) {
 			// 設定値がない場合は、無視する。
@@ -368,6 +392,10 @@ public abstract class MediaManager {
 			return;
 		}
 	}
+	/**
+	 * 映像propertiesの内容解析処理
+	 * @param node
+	 */
 	private void setupProperties(Node node) {
 		NamedNodeMap attributes = node.getAttributes();
 		if(attributes != null) {
@@ -392,6 +420,10 @@ public abstract class MediaManager {
 			}
 		}
 	}
+	/**
+	 * 映像flagsの内容解析処理
+	 * @param node
+	 */
 	private void setupFlags(Node node) {
 		NamedNodeMap attributes = node.getAttributes();
 		if(attributes != null) {
@@ -428,7 +460,12 @@ public abstract class MediaManager {
 	 * @return
 	 */
 	public abstract boolean resetupContainer();
-	/** 以下取得用 */
+	/**
+	 * コンテナの再生成動作のベース部
+	 * @param url
+	 * @param ext
+	 * @return
+	 */
 	protected boolean resetupContainer(String url, String ext) {
 		int retval = -1;
 		IContainer container = IContainer.make();
@@ -454,12 +491,24 @@ public abstract class MediaManager {
 			throw new RuntimeException("コンテナのheaderへの書き込みに失敗しました。");
 		}
 	}
+	/**
+	 * streamInfoを参照します。
+	 * @return
+	 */
 	public ISimpleMediaFile getStreamInfo() {
 		return streamInfo;
 	}
+	/**
+	 * 動画プロパティー値を参照します。
+	 * @return
+	 */
 	public Map<String, String> getVideoProperty() {
 		return videoProperties;
 	}
+	/**
+	 * 動画フラッグ値を参照します。
+	 * @return
+	 */
 	public Map<IStreamCoder.Flags, Boolean> getVideoFlags() {
 		return videoFlags;
 	}
