@@ -13,6 +13,8 @@ import com.ttProject.streaming.data.IMediaPacket;
  * @author taktod
  */
 public abstract class WebMPacket implements IMediaPacket {
+	public static final int EBMLId = 0x1A45DFA3;
+	public static final int ClusterId = 0x1F43B675; // clusterIdがきたら次のパケットとおもっておいた方がよさそう。
 	/** パケットの実データ保持 */
 	private ByteBuffer buffer = null;
 	/**
@@ -68,12 +70,6 @@ public abstract class WebMPacket implements IMediaPacket {
 		return lastEBMLBytes;
 	}
 	/**
-	 * byteBufferを解析します。
-	 * @param buffer 解析するネタ
-	 * @return true:解析完了パケットが書き込みreadyになっています。false:解析途上もっとデータが必要。
-	 */
-	public abstract boolean analize(ByteBuffer buffer);
-	/**
 	 * EBMLIdを応答する。
 	 * @param buffer 解析元のデータ
 	 * @return null:エラー long:IDの値 エラー時にはbufferのpositionを元の場所に戻してあります。
@@ -102,7 +98,7 @@ public abstract class WebMPacket implements IMediaPacket {
 				return false;
 			}
 			// TODO ClusterIDの設定で切り分けるという部分は書き換えてもいいかもしれない。
-			if(header == WebMPacketManager.ClusterId && getBufferSize() != 0) {
+			if(header == ClusterId && getBufferSize() != 0) {
 				buffer.position(position);
 				return true;
 			}
@@ -207,7 +203,7 @@ public abstract class WebMPacket implements IMediaPacket {
 	public void writeData() {
 		System.out.println("書き込み実行します。" + buffer.position());
 		try {
-			WritableByteChannel channel = Channels.newChannel(new FileOutputStream("/home/xxx/download/test640." + num + ".webm"));
+			WritableByteChannel channel = Channels.newChannel(new FileOutputStream("/home/xxxx/download/test640." + num + ".webm"));
 			buffer.flip();
 			channel.write(buffer);
 		}

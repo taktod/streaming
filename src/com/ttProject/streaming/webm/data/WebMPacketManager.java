@@ -13,8 +13,8 @@ import com.ttProject.streaming.data.IMediaPacketManager;
  */
 public class WebMPacketManager implements IMediaPacketManager {
 	// ID list
-/*	public static final int EBMLId = 0x1A45DFA3;
-	public static final int VoidId = 0xEC;
+//	public static final int EBMLId = 0x1A45DFA3;
+/*	public static final int VoidId = 0xEC;
 	public static final int CRC32Id = 0xBF;
 	public static final int SegmentId = 0x18538067;
 	  public static final int InfoId = 0x1549A966; // segment情報にはタイムコードベース情報とかあるので、保持する必要あり。
@@ -42,8 +42,8 @@ public class WebMPacketManager implements IMediaPacketManager {
 	      public static final int DefaultDurationId = 0x23E383;
 	      public static final int VideoId = 0xE0; // videoSetting
 	      public static final int AudioId = 0xE1; // audioSetting*/
-	  public static final int ClusterId = 0x1F43B675; // clusterIdがきたら次のパケットとおもっておいた方がよさそう。
-	    public static final int TimecodeId = 0xE7; // timecodeだけ、あとで数値がいれやすいように、サイズをかえておく。
+//	  public static final int ClusterId = 0x1F43B675; // clusterIdがきたら次のパケットとおもっておいた方がよさそう。
+//	    public static final int TimecodeId = 0xE7; // timecodeだけ、あとで数値がいれやすいように、サイズをかえておく。
 
 	  // 以下の情報はliveStreamingでは使わないもの
 /*	  public static final int SeekHeadId = 0x114D9B74;
@@ -109,13 +109,16 @@ public class WebMPacketManager implements IMediaPacketManager {
 				return null;
 			}
 			// nullではないのでIDが取得できた。
-			if(id == ClusterId) {
+			if(id == WebMPacket.ClusterId) {
 				// clusterIDの場合はWebMMediaPacketをつくる。
 				packet = new WebMMediaPacket();
 			}
-			else {
+			else if(id == WebMPacket.EBMLId){ // EBMLIdが２度くるとはおもえないけど・・・
 				// clusterIDではじまっていないので、WebMHeaderPacketをつくる。
 				packet = new WebMHeaderPacket();
+			}
+			else {
+				throw new RuntimeException("処理不能なデータがきました。");
 			}
 			// bufferの位置をもどしておく。
 			buffer.position(position);

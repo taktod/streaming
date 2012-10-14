@@ -7,6 +7,7 @@ import java.nio.ByteBuffer;
  * @author taktod
  */
 public class WebMMediaPacket extends WebMPacket {
+	public static final int TimecodeId = 0xE7;
 	// 先頭はClusterIDであるはず。(currentHeaderは処理途上でbyteBufferの中身がなくなった場合に、あとから参照し直すことがある。)
 	private long currentHeader = 0x00L;
 	/**
@@ -43,7 +44,7 @@ public class WebMMediaPacket extends WebMPacket {
 	 */
 	@Override
 	protected Boolean checkSize(ByteBuffer buffer) {
-		if(currentHeader == WebMPacketManager.TimecodeId) {
+		if(currentHeader == TimecodeId) {
 			// timeCodeIdの場合だけ別処理をする必要あり。
 			Long size = getEBMLSize(buffer);
 			if(size == null) {
@@ -60,7 +61,7 @@ public class WebMMediaPacket extends WebMPacket {
 	}
 	@Override
 	protected Boolean checkBody(ByteBuffer buffer) {
-		if(currentHeader == WebMPacketManager.TimecodeId) {
+		if(currentHeader == TimecodeId) {
 			if(buffer.remaining() > getRemainData()) {
 				long data = 0;
 				byte[] targetData = new byte[getRemainData()];
