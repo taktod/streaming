@@ -64,3 +64,6 @@ http://poepoemix.blogspot.jp/2012/10/blog-post_4868.html
 
 2012/10/08
 flvの生ストリーム出力動作をtakに追加
+
+2012/10/14
+webmとmpegtsの分割用のプログラムを書いてみた。
