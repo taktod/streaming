@@ -13,11 +13,9 @@ import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IContainerFormat;
 import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.IPacket;
-import com.xuggle.xuggler.ISimpleMediaFile;
 import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IStreamCoder;
 import com.xuggle.xuggler.IVideoPicture;
-import com.xuggle.xuggler.SimpleMediaFile;
 
 /**
  * コンバートのデータ取得処理を管理するManager
@@ -35,6 +33,7 @@ public class FlvManager {
 	private int audioStreamId = -1;
 	private int videoStreamId = -1;
 	private FlvDataQueue inputDataQueue = null;
+	private FlvCustomReader customReader = null;
 	public FlvManager() {
 		logger.info("flvManagerを初期化します。");
 		setup();
@@ -51,6 +50,7 @@ public class FlvManager {
 		FlvHandler flvHandler = new FlvHandler(inputDataQueue);
 		FlvHandlerFactory flvFactory = FlvHandlerFactory.getFactory();
 		flvFactory.registerHandler(convertManager.getName(), flvHandler);
+		customReader = new FlvCustomReader(inputDataQueue);
 		inputDataQueue.putHeaderData(FlvAtom.flvHeader().toByteBuffer());
 		return true;
 	}
@@ -71,12 +71,12 @@ public class FlvManager {
 		String url;
 		int retval = -1;
 		ConvertManager convertManager = ConvertManager.getInstance();
-		
+
 		url = FlvHandlerFactory.DEFAULT_PROTOCOL + ":" + convertManager.getName();
 		inputContainer = IContainer.make();
 		IContainerFormat inputFormat = IContainerFormat.make();
 		inputFormat.setInputFormat("flv");
-		
+
 		// url, read動作, フォーマットはflv, dynamicに動作して, metaデータはなしという指定
 		retval = inputContainer.open(url, IContainer.Type.READ, inputFormat, true, false);
 		if(retval < 0) {
@@ -182,15 +182,47 @@ public class FlvManager {
 		int retval = -1;
 		// 入力コンテナからデータを引き出す。
 		IPacket packet = IPacket.make(); // 使い回しで実行することも可能だが、作り直した方が安定するっぽい。
-		retval = inputContainer.readNextPacket(packet);
-		if(retval < 0) {
-			logger.error("パケット取得エラー: {}, {}", IError.make(retval), retval);
-			if("Resource temporarily unavailable".equals(IError.make(retval).getDescription())) {
-				// リソースが一時的にない場合は、このまま続けていれば動作可能になるので、スルーする。
-				return true;
+		ConvertManager convertManager = ConvertManager.getInstance();
+		if(convertManager.isProcessingFlvHandler()) {
+			retval = inputContainer.readNextPacket(packet);
+			if(retval < 0) {
+				logger.error("パケット取得エラー: {}, {}", IError.make(retval), retval);
+				if("Resource temporarily unavailable".equals(IError.make(retval).getDescription())) {
+					// リソースが一時的にない場合は、このまま続けていれば動作可能になるので、スルーする。
+					return true;
+				}
+				return false;
 			}
-			return false;
+			if(packet.getDts() + 10000 < packet.getPts()) {
+//				logger.warn("元データ動作が停止しました。");
+				convertManager.setProcessingFlvHandler(false);
+			}
+/*			try {
+				logger.info(packet.toString());
+				byte[] bufCheck = new byte[32];
+				packet.getByteBuffer().duplicate().get(bufCheck);
+				logger.info("a:" + Utils.toHex(bufCheck));
+			}
+			catch (Exception e) {
+			}*/
 		}
+/*		else {
+			logger.info("■");
+		}*/
+		boolean result = customReader.readNextPacket(packet);
+/*		try {
+			logger.info(packet.toString());
+			byte[] bufCheck = new byte[32];
+			packet.getByteBuffer().duplicate().get(bufCheck);
+			logger.info("b:" + Utils.toHex(bufCheck));
+		}
+		catch (Exception e) {
+//			logger.info("エラー", e);
+		}*/
+		if(!result) {
+			return true; // 次にいく。(スルー)
+		}
+
 		// 入力コーダーを確認します。
 		if(!checkInputCoder(packet)) {
 //			logger.info("処理すべきコーダーではないみたいです。");

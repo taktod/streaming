@@ -4,7 +4,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.ttProject.xuggle.flv.FlvManager;
-import com.xuggle.xuggler.IPacket;
 
 /**
  * Xuggleでメディアデータのコンバートを実行します。

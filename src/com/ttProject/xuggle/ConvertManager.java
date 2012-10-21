@@ -60,6 +60,13 @@ public class ConvertManager {
 	private Thread transcodeThread = null;
 	/** マルチスレッド化用のexecutors */
 	private final ExecutorService executors;
+	private boolean processingFlvHandler = true;
+	public boolean isProcessingFlvHandler() {
+		return processingFlvHandler;
+	}
+	public void setProcessingFlvHandler(boolean flg) {
+		processingFlvHandler = flg;
+	}
 	/**
 	 * コンストラクタ
 	 */
