@@ -37,7 +37,7 @@
 	<tak rawdata="true"><!-- 生データ -->
 		<name>raw</name>
 	</tak>
-	<tak>
+<!--<tak>
 		<name>1024</name>
 		<video>
 			<codec>h264</codec>
@@ -87,7 +87,7 @@
 			<channel>2</channel>
 			<sampleRate>44100</sampleRate>
 		</audio>
-	</tak>
+	</tak>-->
 	<tak>
 		<name>320</name>
 		<video>
@@ -105,7 +105,7 @@
 			<sampleRate>44100</sampleRate>
 		</audio>
 	</tak>
-	<tak>
+<!--<tak>
 		<name>160</name>
 		<video>
 			<codec>h264</codec>
@@ -138,7 +138,7 @@
 			<channel>2</channel>
 			<sampleRate>44100</sampleRate>
 		</audio>
-	</hls>
+	</hls>-->
 	<hls>
 		<name>320</name>
 		<video>
@@ -156,7 +156,7 @@
 			<sampleRate>44100</sampleRate>
 		</audio>
 	</hls>
-	<hls>
+<!--<hls>
 		<name>160</name>
 		<video>
 			<codec>h264</codec>
@@ -179,7 +179,7 @@
 			<codec>vp8</codec>
 			<width>640</width>
 			<height>480</height>
-			<bitRate>300000</bitRate>
+			<bitRate>800000</bitRate>
 			<frameRate>15</frameRate>
 		</video>
 		<audio>
@@ -188,7 +188,7 @@
 			<channel>2</channel>
 			<sampleRate>44100</sampleRate>
 		</audio>
-	</webM>
+	</webM>-->
 	<webM>
 		<name>320</name>
 		<video>
