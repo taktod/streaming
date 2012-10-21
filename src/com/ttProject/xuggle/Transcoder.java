@@ -57,10 +57,9 @@ public class Transcoder implements Runnable {
 		logger.info("変換を開始します。");
 		ConvertManager convertManager = ConvertManager.getInstance();
 		FlvManager flvManager = convertManager.getFlvManager();
-		IPacket packet = IPacket.make();
 		while(keepRunning) {
 			// コンバートを開始する。
-			keepRunning = flvManager.execute(packet);
+			keepRunning = flvManager.execute();
 		}
 	}
 }

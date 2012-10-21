@@ -38,8 +38,6 @@ public class FlvManager {
 	public FlvManager() {
 		logger.info("flvManagerを初期化します。");
 		setup();
-		// TODO ここでコンテナを開こうとすると、フリーズします。(ffmpegからwaitがかかるらしい。)
-//		openInputContainer();
 	}
 	/**
 	 * 
@@ -75,14 +73,11 @@ public class FlvManager {
 		ConvertManager convertManager = ConvertManager.getInstance();
 		
 		url = FlvHandlerFactory.DEFAULT_PROTOCOL + ":" + convertManager.getName();
-		ISimpleMediaFile inputInfo = new SimpleMediaFile();
-		inputInfo.setURL(url);
 		inputContainer = IContainer.make();
 		IContainerFormat inputFormat = IContainerFormat.make();
 		inputFormat.setInputFormat("flv");
 		
 		// url, read動作, フォーマットはflv, dynamicに動作して, metaデータはなしという指定
-		inputContainer.setInputBufferLength(15); // readで読み込むデータ量を15バイトに制限しておく。
 		retval = inputContainer.open(url, IContainer.Type.READ, inputFormat, true, false);
 		if(retval < 0) {
 			logger.info("入力コンテナの開くのに失敗しました。");
@@ -183,9 +178,10 @@ public class FlvManager {
 	 * @param target
 	 * @return
 	 */
-	public boolean execute(IPacket packet) {
+	public boolean execute() {
 		int retval = -1;
 		// 入力コンテナからデータを引き出す。
+		IPacket packet = IPacket.make(); // 使い回しで実行することも可能だが、作り直した方が安定するっぽい。
 		retval = inputContainer.readNextPacket(packet);
 		if(retval < 0) {
 			logger.error("パケット取得エラー: {}, {}", IError.make(retval), retval);
