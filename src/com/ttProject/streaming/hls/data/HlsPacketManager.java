@@ -4,11 +4,14 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.ttProject.streaming.data.IMediaPacket;
+import com.ttProject.streaming.data.IMediaPacketManager;
+
 /**
  * HttpLiveStreamingのパケットを管理するマネージャー
  * @author taktod
  */
-public class HlsPacketManager {
+public class HlsPacketManager implements IMediaPacketManager {
 	/** 読み込みBuffer */
 	private ByteBuffer buffer = null;
 	private HlsPacket currentPacket = null;
@@ -17,7 +20,8 @@ public class HlsPacketManager {
 	 * @param data
 	 * @return
 	 */
-	public List<HlsPacket> getPackets(byte[] data) {
+	@Override
+	public List<IMediaPacket> getPackets(byte[] data) {
 		if(buffer != null) {
 			int length = buffer.remaining() + data.length;
 			ByteBuffer newBuffer = ByteBuffer.allocate(length);
@@ -29,7 +33,7 @@ public class HlsPacketManager {
 		}
 		buffer.put(data);
 		buffer.flip();
-		List<HlsPacket> result = new ArrayList<HlsPacket>();
+		List<IMediaPacket> result = new ArrayList<IMediaPacket>();
 		// bufferにデータがはいったので、188バイトずつ読み込む
 		while(buffer.remaining() > 0) {
 			HlsPacket packet = analizePacket(buffer);

@@ -51,12 +51,12 @@ public class FlvCustomReader {
 			// inputDataQueueがflvHandlerがpollでうごいてるけどtakeにした方がいいかも・・・
 			ByteBuffer data = inputDataQueue.readForReader();
 			if(data == null) {
-				logger.info("データが枯渇した。");
+//				logger.info("データが枯渇した。");
 				// データが枯渇したので、次にいく。
 				return false;
 			}
 			if(data.remaining() == 13) {
-				logger.info("headerを取得します。");
+//				logger.info("headerを取得します。");
 				// 13バイト保持しているデータは通常header以外ありえない。
 				// とりあえず、データがflvheaderであるか確認する。
 				if(!checkHeader(data)) {
@@ -64,9 +64,9 @@ public class FlvCustomReader {
 				}
 			}
 			else {
-				logger.info("mediaデータ調査");
+//				logger.info("mediaデータ調査");
 				if(analizeData(packet, data)) {
-					logger.info("mediaみつかった。");
+//					logger.info("mediaみつかった。");
 					return true;
 				}
 			}
@@ -126,6 +126,7 @@ public class FlvCustomReader {
 //		case 7: // AVC
 			passedData += 1;
 			size -= 1;
+			break;
 		case 7: // AVC
 			buffer.getInt();
 			passedData += 5;

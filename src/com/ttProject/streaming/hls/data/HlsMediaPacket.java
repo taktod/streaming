@@ -15,7 +15,7 @@ public class HlsMediaPacket extends HlsPacket {
 				// キーパケットであるか確認する。
 				if(isH264KeyPacket(buffer) && getBufferSize() > 0) {
 					// バッファがある状態でキーパケットがきたら。次のパケットに進む。
-					System.out.println(getBuffer(0).position());
+					System.out.println(getBufferSize());
 					// データを解析します。pidがh.264のものだったら、解析する。
 					// pidがそれ以外だったら、単に追記する
 					// 書き込みが一段落した
