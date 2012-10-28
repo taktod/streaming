@@ -19,11 +19,11 @@ public class WebMHandler implements IURLProtocolHandler {
 	private FileOutputStream fos = null;
 	public WebMHandler(String target) {
 		outputDirectory = target;
-		try {
+/*		try {
 			fos = new FileOutputStream(outputDirectory);
 		}
 		catch (Exception e) {
-		}
+		}*/
 	}
 	/**
 	 * 閉じる要求がきたときの処理
@@ -90,6 +90,14 @@ public class WebMHandler implements IURLProtocolHandler {
 	 */
 	@Override
 	public int write(byte[] buf, int size) {
+		if(fos == null) {
+			try {
+				fos = new FileOutputStream(outputDirectory);
+				logger.info(outputDirectory + ":を開き直しました。");
+			}
+			catch (Exception e) {
+			}
+		}
 		if(fos != null) {
 			try {
 				fos.write(buf, 0, size);
