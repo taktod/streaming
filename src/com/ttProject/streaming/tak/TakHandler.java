@@ -19,11 +19,11 @@ public class TakHandler implements IURLProtocolHandler {
 	private FileOutputStream fos = null;
 	public TakHandler(String target) {
 		outputDirectory = target;
-		try {
+/*		try {
 			fos = new FileOutputStream(outputDirectory);
 		}
 		catch (Exception e) {
-		}
+		}*/
 	}
 	/**
 	 * 閉じる要求がきたときの処理
@@ -90,6 +90,15 @@ public class TakHandler implements IURLProtocolHandler {
 	 */
 	@Override
 	public int write(byte[] buf, int size) {
+//		logger.info("書き込みきました。" + Utils.toHex(buf, 0, 11, true));
+		if(fos == null) {
+			try {
+				fos = new FileOutputStream(outputDirectory);
+				logger.info(outputDirectory + ":を開き直しました。");
+			}
+			catch (Exception e) {
+			}
+		}
 		if(fos != null) {
 			try {
 				fos.write(buf, 0, size);
