@@ -3,6 +3,8 @@ package com.ttProject.xuggle.flv;
 import java.nio.ByteBuffer;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
+
+import com.ttProject.xuggle.ConvertManager;
 import com.xuggle.xuggler.io.IURLProtocolHandler;
 
 /**
@@ -62,7 +64,13 @@ public class FlvHandler implements IURLProtocolHandler {
 	 */
 	@Override
 	public int read(byte[] buf, int size) {
-		// size分までしか読み込みする必要がないので、byteBufferとして、size分メモリーを準備しておく。
+		if(size > 100000) {
+			// とりいそぎ、flvデータの読み込みがこわれる現象を取得するすべがなくなってしまったので、sizeが大きすぎる要求がきた場合には、readNextPacketが壊れたという判定をしておきたいと思います。
+			logger.info("サイズの大きな読み込み依頼がきてしまったので、ここから先はcustomの読み込みに任せる。" + size);
+			ConvertManager convertManager = ConvertManager.getInstance();
+			convertManager.setProcessingFlvHandler(false);
+			return 0;
+		}
 		ByteBuffer readBuffer = ByteBuffer.allocate(size);
 		while(readBuffer.hasRemaining()) {
 			// 読み込み可能byteがsizeより小さい場合
