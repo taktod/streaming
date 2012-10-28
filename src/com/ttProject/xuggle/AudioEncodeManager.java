@@ -73,7 +73,7 @@ public class AudioEncodeManager {
 		if(outCodec == null) {
 			throw new RuntimeException("audio出力用のコーデックを取得することができませんでした。");
 		}
-		for(IContainer container : getContainers()) {
+		for(IContainer container : getContainers()) { // TODO ここで示されるContainerがvideoと違うっぽい。どこか初期化まわりにバグがあるのだろうか？
 			IStream outStream = null;
 			if(audioCoder != null) {
 				outStream = container.addNewStream(audioCoder);
@@ -123,6 +123,12 @@ public class AudioEncodeManager {
 	 */
 	private void addContainer(IContainer container) {
 		containers.add(container);
+	}
+	public void closeCoder() {
+		if(audioCoder != null) {
+			audioCoder.close();
+			audioCoder = null;
+		}
 	}
 	/**
 	 * 音声コーダーを参照
