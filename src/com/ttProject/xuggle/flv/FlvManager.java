@@ -27,23 +27,29 @@ import com.xuggle.xuggler.IVideoPicture;
 public class FlvManager {
 	/** 動作ロガー */
 	private final Logger logger = LoggerFactory.getLogger(FlvManager.class);
+	/** 入力コンテナ */
 	private IContainer inputContainer = null;
+	/** デコード用コーダー */
 	private IStreamCoder inputAudioCoder = null;
 	private IStreamCoder inputVideoCoder = null;
+	/** 動作ストリームIndex保持 */
 	private int audioStreamId = -1;
 	private int videoStreamId = -1;
+	/** flvのデータQueue */
 	private FlvDataQueue inputDataQueue = null;
+	/** 独自のFlvデータ解析リーダー */
 	private FlvCustomReader customReader = null;
+	/**
+	 * コンストラクタ
+	 */
 	public FlvManager() {
-		logger.info("flvManagerを初期化します。");
 		setup();
 	}
 	/**
-	 * 
+	 * セットアップ動作
 	 * @return
 	 */
 	public boolean setup() {
-		logger.info("セットアップの開始");
 		ConvertManager convertManager = ConvertManager.getInstance();
 		// 変換用のHandlerを準備しておく。
 		inputDataQueue = new FlvDataQueue();
@@ -67,7 +73,6 @@ public class FlvManager {
 	 * コンストラクタで動作、入力用のffmpegのコンテナをあけておく。
 	 */
 	public void openInputContainer() {
-		logger.info("入力コンテナを開きます。");
 		String url;
 		int retval = -1;
 		ConvertManager convertManager = ConvertManager.getInstance();
@@ -99,7 +104,7 @@ public class FlvManager {
 		}
 		IStreamCoder coder = stream.getStreamCoder();
 		if(coder == null) {
-			// coderが取得できませんでした。(こちらも欠損しているかのヌセイあるので、発生してもおかしくない。)
+			// coderが取得できませんでした。(こちらも欠損している可能性があるので、発生してもおかしくない。)
 			// 処理続行は無理
 			return false;
 		}
@@ -183,6 +188,7 @@ public class FlvManager {
 		// 入力コンテナからデータを引き出す。
 		IPacket packet = IPacket.make(); // 使い回しで実行することも可能だが、作り直した方が安定するっぽい。
 		ConvertManager convertManager = ConvertManager.getInstance();
+		// customReaderのみでは、コーダーを開くところがうまくいかないので、壊れるまでは、通常のIContainer.readNextPacketも併用します。
 		if(convertManager.isProcessingFlvHandler()) {
 			retval = inputContainer.readNextPacket(packet);
 			if(retval < 0) {
@@ -193,10 +199,14 @@ public class FlvManager {
 				}
 				return false;
 			}
-			if(packet.getDts() + 10000 < packet.getPts()) {
-//				logger.warn("元データ動作が停止しました。");
+			// ここは、元の処理に戻せるようにしばらく残しておきます。
+			// もともと、IContainer.readNextPacketの動作が壊れるときの予兆としてDtsとPtsのデータの差が大きくなるというのがあったので、そのとき利用していた判定方法
+			// →この判定はTranscodeWriterを書き直してFlvの生成をより確実にしたところ判定材料にならなくなった。
+/*			if(packet.getDts() + 10000 < packet.getPts()) {
+				logger.warn("元データ動作が停止しました。");
 				convertManager.setProcessingFlvHandler(false);
-			}
+			}// */
+			// パケットの中身を確認するための動作
 /*			try {
 				logger.info(packet.toString());
 				byte[] bufCheck = new byte[32];
@@ -206,28 +216,26 @@ public class FlvManager {
 			catch (Exception e) {
 			}*/
 		}
-/*		else {
-			logger.info("■");
-		}*/
-		boolean result = customReader.readNextPacket(packet);
+		// 通常のreadNextPacketが壊れるので、カスタムリーダーで動作させる。
+		if(!customReader.readNextPacket(packet)) {
+			return true; // 読み込みに不備があった場合は、スルーする。
+		}
+		// カスタムリーダーの読み込みデータが壊れていないか確認するための動作
 /*		try {
 			logger.info(packet.toString());
-			byte[] bufCheck = new byte[32];
-			packet.getByteBuffer().duplicate().get(bufCheck);
-			logger.info("b:" + Utils.toHex(bufCheck));
+//			byte[] bufCheck = new byte[32];
+//			packet.getByteBuffer().duplicate().get(bufCheck);
+//			logger.info("b:" + Utils.toHex(bufCheck));
 		}
 		catch (Exception e) {
-//			logger.info("エラー", e);
-		}*/
-		if(!result) {
-			return true; // 次にいく。(スルー)
-		}
+			logger.info("エラー", e);
+		}// */
 
 		// 入力コーダーを確認します。
 		if(!checkInputCoder(packet)) {
-//			logger.info("処理すべきコーダーではないみたいです。");
 			return true;
 		}
+		// 音声と映像の処理に分化させる。
 		int index = packet.getStreamIndex();
 		if(index == audioStreamId) {
 			executeAudio(packet);
