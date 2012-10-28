@@ -128,6 +128,8 @@ public class ConvertManager {
 		// 要するにTranscoderの部分
 		// 実際の内部の初期化は、inputContainerを開く部分は入力変換用のthereadの冒頭
 		// 出力コンテナの部分は、入力メディアデータのうち対象のデータをうけとった瞬間に実行(もしくは再構築)する。
+	}
+	public void startConvertThread() {
 		logger.info("コンバート処理用のthreadを準備します。");
 		transcoder = new Transcoder();
 		transcodeThread = new Thread(transcoder);
@@ -141,6 +143,29 @@ public class ConvertManager {
 		// 強制停止
 		executors.shutdownNow();
 	}
+	public void closeAllOutputContainer() {
+		// 前の動作では、閉じる前にtrailerを書き込んでcoderのcloseも実行していたので、そうするべきかも。
+		// いままでに開いているoutputContainerをすべて閉じます。
+		// コンテナ全体にwriteTailerを実行
+		for(final MediaManager manager : mediaManagers) {
+			manager.writeTailer();
+		}
+		// 変換コーダーを閉じる。
+		for(final VideoEncodeManager videoEncodeManager : videoEncodeManagers) {
+			videoEncodeManager.closeCoder();
+		}
+		for(final AudioEncodeManager audioEncodeManager : audioEncodeManagers) {
+			audioEncodeManager.closeCoder();
+		}
+		// コンテナを閉じる。
+		for(final MediaManager manager : mediaManagers) {
+			manager.close();
+		}
+		videoEncodeManagers.clear();
+		audioEncodeManagers.clear();
+		videoResampleManagers.clear();
+		audioResampleManagers.clear();
+	}
 	/**
 	 * 関連づいている出力コンテナを再初期化する。
 	 * TODO 処理長過ぎ、切り分けしておきたいところ
@@ -149,18 +174,15 @@ public class ConvertManager {
 	 */
 	public void resetupOutputContainer(boolean audioFlg, boolean videoFlg) {
 		logger.info("出力コンテナの準備を実行します。");
-		// clearだけでいいのか？ほんとうは閉じないとだめなのでは？
-		videoEncodeManagers.clear();
-		audioEncodeManagers.clear();
-		videoResampleManagers.clear();
-		audioResampleManagers.clear();
+		// clearだけでいいのか？ほんとうは閉じないとだめなのでは？→閉じないとだめだった・・・
+		closeAllOutputContainer();
 		// コンテナの再構築を実行する。(マルチスレッド)
 		List<Future<?>> list = new ArrayList<Future<?>>();
 		for(final MediaManager manager : mediaManagers) {
 			list.add(executors.submit(new Runnable() {
 				@Override
 				public void run() {
-					manager.resetupContainer();
+					manager.resetupContainer(); // コンテナを作り直す。
 				}
 			}));
 		}
@@ -233,7 +255,7 @@ public class ConvertManager {
 	 * @param audioEncodeManager
 	 */
 	private void setupAudioResamplerManagers(AudioEncodeManager audioEncodeManager) {
-		logger.info("音声のencodeManagerを作成します。");
+		logger.info("音声のresamplerManagerを作成します。");
 		for(AudioResampleManager audioResampleManager : audioResampleManagers) {
 			if(audioResampleManager.addEncodeManager(audioEncodeManager)) {
 				logger.info("使い回し");
@@ -290,7 +312,7 @@ public class ConvertManager {
 			// そのままのデータをhttpTakStreamingにする動作がのこっている場合はそこにデータを投げるようにしておく。
 			rawTakManager.writeRawData(buffer);
 		}
-		// コンバート動作にflvデータをまわす。
+		// コンバート動作にflvデータをまわす。(コンバートにまわす部分をとりあえず、抑制しておく。)
 		if(flvManager != null) {
 			flvManager.writeData(buffer);
 		}
@@ -301,7 +323,9 @@ public class ConvertManager {
 	 */
 	public void executeAudio(IAudioSamples decodedSamples) {
 		// データをリサンプルする。
+//		logger.info("audioの変換処理を実施する。");
 		for(AudioResampleManager audioResampleManager : audioResampleManagers) {
+//			logger.info("リサンプルかけます。");
 			// リサンプルかける。
 			List<Future<?>> list = new ArrayList<Future<?>>();
 			final IAudioSamples resampledData = audioResampleManager.resampleAudio(decodedSamples);
@@ -311,6 +335,7 @@ public class ConvertManager {
 				list.add(executors.submit(new Runnable() {
 					@Override
 					public void run() {
+//						logger.info("エンコードを実行します。");
 						audioEncodeManager.encodeAudio(resampledData);
 					}
 				}));
