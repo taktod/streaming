@@ -99,7 +99,6 @@ public class VideoEncodeManager {
 		}
 		for(IContainer container : getContainers()) {
 			IStream outStream = null;
-			logger.info("container:" + container.toString());
 			if(videoCoder != null) {
 				outStream = container.addNewStream(videoCoder);
 			}
@@ -160,6 +159,12 @@ public class VideoEncodeManager {
 	 */
 	private void addContainer(IContainer container) {
 		containers.add(container);
+	}
+	public void closeCoder() {
+		if(videoCoder != null) {
+			videoCoder.close();
+			videoCoder = null;
+		}
 	}
 	/**
 	 * 映像コーダーを参照
