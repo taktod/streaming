@@ -14,6 +14,7 @@ import com.xuggle.xuggler.IPacket;
 import com.xuggle.xuggler.ISimpleMediaFile;
 import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IStreamCoder;
+import com.xuggle.xuggler.ICodec.ID;
 
 /**
  * コンバートの動作を管理するManager
@@ -89,6 +90,12 @@ public class AudioEncodeManager {
 				outCoder.setBitRate(getBitRate());
 				outCoder.setSampleRate(getSampleRate());
 				outCoder.setChannels(getChannels());
+				if(outCoder.getCodecID() == ID.CODEC_ID_VORBIS) {
+//					IAudioSamples.Format
+					logger.info("vorbisのフォーマットなのでsampleFormatをいじってみます。");
+//					outCoder.setSampleFormat(IAudioSamples.Format.FMT_FLT);
+					outCoder.setSampleFormat(IAudioSamples.Format.FMT_FLT);
+				}
 				outCoder.open(null, null);
 				audioCoder = outCoder;
 			}

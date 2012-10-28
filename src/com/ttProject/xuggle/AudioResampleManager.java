@@ -29,6 +29,7 @@ public class AudioResampleManager {
 	/** 変換目標データ */
 	private int sampleRate;
 	private int channels;
+	private IAudioSamples.Format format;
 	/**
 	 * コンストラクタ
 	 * @param encodeManager
@@ -38,6 +39,7 @@ public class AudioResampleManager {
 		encodeManagers.add(encodeManager);
 		setSampleRate(audioCoder.getSampleRate());
 		setChannels(audioCoder.getChannels());
+		setFormat(audioCoder.getSampleFormat());
 	}
 	/**
 	 * 同じ処理で済むencodeManagerを追加
@@ -47,7 +49,8 @@ public class AudioResampleManager {
 	public boolean addEncodeManager(AudioEncodeManager encodeManager) {
 		IStreamCoder audioCoder = encodeManager.getAudioCoder();
 		if(audioCoder.getSampleRate() == getSampleRate()
-		&& audioCoder.getChannels() == getChannels()) {
+		&& audioCoder.getChannels() == getChannels()
+		&& audioCoder.getSampleFormat().equals(getSampleFormat())) {
 			encodeManagers.add(encodeManager);
 			return true;
 		}
@@ -76,7 +79,8 @@ public class AudioResampleManager {
 		if(resampler == null
 		|| samples.getChannels() != resampler.getInputChannels()
 		|| samples.getFormat() != resampler.getInputFormat()
-		|| samples.getSampleRate() != resampler.getInputRate()) {
+		|| samples.getSampleRate() != resampler.getInputRate()
+		|| !samples.getFormat().equals(getSampleFormat())) {
 			setupResampler(samples);
 		}
 	}
@@ -89,7 +93,8 @@ public class AudioResampleManager {
 //		if(resampler != null) {
 //			resampler.delete();
 //		}
-		resampler = IAudioResampler.make(getChannels(), samples.getChannels(), getSampleRate(), samples.getSampleRate());
+//		IAudioResampler.make(outputChannels, inputChannels, outputRate, inputRate, outputFmt, inputFmt)
+		resampler = IAudioResampler.make(getChannels(), samples.getChannels(), getSampleRate(), samples.getSampleRate(), getSampleFormat(), samples.getFormat());
 		if(resampler == null) {
 			throw new RuntimeException("audioリサンプラーの作成に失敗しました。");
 		}
@@ -112,6 +117,12 @@ public class AudioResampleManager {
 	}
 	private void setChannels(int channels) {
 		this.channels = channels;
+	}
+	private IAudioSamples.Format getSampleFormat() {
+		return format;
+	}
+	private void setFormat(IAudioSamples.Format format) {
+		this.format = format;
 	}
 }
 
