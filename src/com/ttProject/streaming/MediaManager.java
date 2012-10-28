@@ -58,7 +58,7 @@ public abstract class MediaManager {
 	 * 音声の有無確認
 	 */
 	public void setHasAudio(Boolean flg) {
-		logger.info("hasAudio:" + flg);
+//		logger.info("hasAudio:" + flg);
 		streamInfo.setHasAudio(flg);
 	}
 	/**
@@ -66,7 +66,7 @@ public abstract class MediaManager {
 	 * @param bitRate
 	 */
 	public void setAudioBitRate(int bitRate) {
-		logger.info("AudioBitRate:" + bitRate);
+//		logger.info("AudioBitRate:" + bitRate);
 		streamInfo.setAudioBitRate(bitRate);
 	}
 	/**
@@ -74,7 +74,7 @@ public abstract class MediaManager {
 	 * @param channels
 	 */
 	public void setAudioChannels(int channels) {
-		logger.info("audioChannels:" + channels);
+//		logger.info("audioChannels:" + channels);
 		streamInfo.setAudioChannels(channels);
 	}
 	/**
@@ -82,7 +82,7 @@ public abstract class MediaManager {
 	 * @param sampleRate
 	 */
 	public void setAudioSampleRate(int sampleRate) {
-		logger.info("audioSampleRate:" + sampleRate);
+//		logger.info("audioSampleRate:" + sampleRate);
 		streamInfo.setAudioSampleRate(sampleRate);
 	}
 	/**
@@ -91,7 +91,7 @@ public abstract class MediaManager {
 	 */
 	public void setAudioCodec(String codecName) {
 		try {
-			logger.info("audioCodec:" + codecName);
+//			logger.info("audioCodec:" + codecName);
 			streamInfo.setAudioCodec(ICodec.ID.valueOf("CODEC_ID_" + codecName.toUpperCase()));
 		}
 		catch (Exception e) {
@@ -103,7 +103,7 @@ public abstract class MediaManager {
 	 * 映像の有無
 	 */
 	public void setHasVideo(Boolean flg) {
-		logger.info("hasVideo:" + flg);
+//		logger.info("hasVideo:" + flg);
 		streamInfo.setHasVideo(flg);
 	}
 	/**
@@ -111,7 +111,7 @@ public abstract class MediaManager {
 	 * @param width
 	 */
 	public void setVideoWidth(int width) {
-		logger.info("videoWidth:" + width);
+//		logger.info("videoWidth:" + width);
 		streamInfo.setVideoWidth(width);
 	}
 	/**
@@ -119,7 +119,7 @@ public abstract class MediaManager {
 	 * @param height
 	 */
 	public void setVideoHeight(int height) {
-		logger.info("videoHeight:" + height);
+//		logger.info("videoHeight:" + height);
 		streamInfo.setVideoHeight(height);
 	}
 	/**
@@ -127,7 +127,7 @@ public abstract class MediaManager {
 	 * @param bitRate
 	 */
 	public void setVideoBitRate(int bitRate) {
-		logger.info("videoBitRate:" + bitRate);
+//		logger.info("videoBitRate:" + bitRate);
 		streamInfo.setVideoBitRate(bitRate);
 	}
 	/**
@@ -136,16 +136,15 @@ public abstract class MediaManager {
 	 * @param frameRate
 	 */
 	public void setVideoFrameRate(int frameRate) {
-		logger.info("videoFrameRate:" + frameRate);
+//		logger.info("videoFrameRate:" + frameRate);
 		streamInfo.setVideoFrameRate(IRational.make(1, frameRate));
-		logger.info("videoFrameRate check{}", streamInfo.getVideoFrameRate());
 	}
 	/**
 	 * globalクオリティー
 	 * @param quality
 	 */
 	public void setVideoGlobalQuality(int quality) {
-		logger.info("videoGlobalQuality:" + quality);
+//		logger.info("videoGlobalQuality:" + quality);
 		streamInfo.setVideoGlobalQuality(quality);
 	}
 	/**
@@ -154,7 +153,7 @@ public abstract class MediaManager {
 	 */
 	public void setVideoCodec(String codecName) {
 		try {
-			logger.info("videoCodec:" + codecName);
+//			logger.info("videoCodec:" + codecName);
 			streamInfo.setVideoCodec(ICodec.ID.valueOf("CODEC_ID_" + codecName.toUpperCase()));
 		}
 		catch (Exception e) {
@@ -249,16 +248,16 @@ public abstract class MediaManager {
 			return;
 		}
 		if("properties".equalsIgnoreCase(name)) {
-			logger.info("properties");
+//			logger.info("properties");
 			// nodeのさらに子要素について調査する必要あり
 			setupProperties(node);
-			logger.info("{}", videoProperties);
+//			logger.info("{}", videoProperties);
 		}
 		if("flags".equalsIgnoreCase(name)) {
-			logger.info("flags");
+//			logger.info("flags");
 			// nodeのさらに子要素について調査する必要あり
 			setupFlags(node);
-			logger.info("{}", videoFlags);
+//			logger.info("{}", videoFlags);
 		}
 		if(value == null || value.trim().equals("")) {
 			// 設定値がない場合は、無視する。
@@ -309,7 +308,6 @@ public abstract class MediaManager {
 			return;
 		}
 		if("ref".equalsIgnoreCase(name)) {
-			// リファレンス設定とりいそぎ無視しておく。
 			// refの場合は、そのデータがついている場合はnodeのデータとして処理させる。
 			ReferenceManager refManager = ReferenceManager.getReferenceData(value);
 			if(refManager == null) {
@@ -382,7 +380,6 @@ public abstract class MediaManager {
 			return;
 		}
 		if("ref".equalsIgnoreCase(name)) {
-			// リファレンス設定とりいそぎ無視しておく。
 			// refの場合は、そのデータがついている場合はnodeのデータとして処理させる。
 			ReferenceManager refManager = ReferenceManager.getReferenceData(value);
 			if(refManager == null) {
@@ -492,6 +489,18 @@ public abstract class MediaManager {
 		}
 	}
 	/**
+	 * メディアデータのフッター情報を書き込みます。
+	 */
+	public void writeTailer() {
+		int retval = -1;
+		if(this.container != null) {
+			retval = this.container.writeTrailer();
+			if(retval < 0) {
+				throw new RuntimeException("コンテナのtailerへの書き込みに失敗しました。");
+			}
+		}
+	}
+	/**
 	 * streamInfoを参照します。
 	 * @return
 	 */
@@ -523,7 +532,7 @@ public abstract class MediaManager {
 	 * コンテナを閉じる
 	 */
 	public void close() {
-		if(container == null) {
+		if(container != null) {
 			container.close();
 			container = null;
 		}
