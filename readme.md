@@ -70,3 +70,21 @@ webmとmpegtsの分割用のプログラムを書いてみた。
 
 2012/10/21
 flvのデコード処理がいまいちだったので、自力でIPacketをつくることにしてみました。
+
+2012/10/26
+いろんなflvについて調べてみた。
+FlashMediaServerについているvodのsample.flvについてちょっと面白いことがわかった。どうやらaudioが先にはじまるみたいで、かつvideoの開始パケットがtimestamp=0からはじまっていなかった。
+このflvでも問題なくxuggleで変換かけれた。
+FlashMediaServerからひっぱってくるときのaggregateのメッセージ変換がまちがってるとしかおもえないんですよね・・・
+
+2012/10/28
+ブロガーの記事にも書いたけど
+http://poepoemix.blogspot.jp/2012/10/flashmediaserver_27.html
+FlashMediaServerが吐くデータについて調査してみた。
+とりあえず生成Flvファイルの安定度がぱねぇ・・・
+xuggleの変換については、やっぱりH.264データを長時間変換してるとIContainer.readNextPacketが壊れるっぽいので、やはり自力のFlvCustomReaderを利用する方向ですすめようと思う。
+このプログラム・・・企業とかで使うには非常にアレな感じになっちゃいましたね。
+
+あと、ずっと気づかなかったんですが、com.ttProject.streaming.xxx.XXXHandlerの動作・・・
+出力コンテナの開き直し実行時のファイルの開き直しが成ってなかった・・・orz
+音声動作追加したら急に動作しなくなったからプログラムのバグかとおもっちゃったよ。ちくしょう。
