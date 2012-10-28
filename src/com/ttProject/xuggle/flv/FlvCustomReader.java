@@ -19,6 +19,7 @@ import com.xuggle.xuggler.IRational;
  * IPacketの生成を実行するためのクラスです。
  */
 public class FlvCustomReader {
+	@SuppressWarnings("unused")
 	private final Logger logger = LoggerFactory.getLogger(FlvCustomReader.class);
 	/** 処理済みデータ量記録 */
 	private long passedData;
@@ -51,12 +52,10 @@ public class FlvCustomReader {
 			// inputDataQueueがflvHandlerがpollでうごいてるけどtakeにした方がいいかも・・・
 			ByteBuffer data = inputDataQueue.readForReader();
 			if(data == null) {
-//				logger.info("データが枯渇した。");
 				// データが枯渇したので、次にいく。
 				return false;
 			}
 			if(data.remaining() == 13) {
-//				logger.info("headerを取得します。");
 				// 13バイト保持しているデータは通常header以外ありえない。
 				// とりあえず、データがflvheaderであるか確認する。
 				if(!checkHeader(data)) {
@@ -64,9 +63,7 @@ public class FlvCustomReader {
 				}
 			}
 			else {
-//				logger.info("mediaデータ調査");
 				if(analizeData(packet, data)) {
-//					logger.info("mediaみつかった。");
 					return true;
 				}
 			}
@@ -90,7 +87,7 @@ public class FlvCustomReader {
 		return true;
 	}
 	/**
-	 * データの内容を調査する。
+	 * データの内容を調査Packetの内容を正しいものにしておく。
 	 * @param packet
 	 * @param buffer
 	 * @return true:調査した結果動作を完了した。 false:調査結果動作が完了していない。
@@ -114,6 +111,14 @@ public class FlvCustomReader {
 		}
 		return true;
 	}
+	/**
+	 * 動画パケットを解析し、packetに結びつけておきます。
+	 * 結びつけ方法はxuggleの動作を見ながら状況解析で実装したので、まちがってるかもしれない。
+	 * @param packet
+	 * @param buffer
+	 * @param size
+	 * @param timestamp
+	 */
 	private void readVideoPacket(IPacket packet, ByteBuffer buffer, int size, int timestamp) {
 		byte data = buffer.get();
 		switch((data & 0x0F)) {
@@ -155,6 +160,14 @@ public class FlvCustomReader {
 		packet.setTimeBase(IRational.make(1, 1000));
 		passedData += size + 4;
 	}
+	/**
+	 * 音声パケットを解析し、packetにデータを結びつけておきます。
+	 * 結びつけ方法はxuggleの動作を見ながら状況解析で実装したので、まちがってるかもしれない。
+	 * @param packet
+	 * @param buffer
+	 * @param size
+	 * @param timestamp
+	 */
 	private void readAudioPacket(IPacket packet, ByteBuffer buffer, int size, int timestamp) {
 		byte data = buffer.get();
 		switch((data & 0xF0) >>> 4) {
@@ -203,6 +216,5 @@ public class FlvCustomReader {
 	 * 閉じます。
 	 */
 	public void close() {
-		
 	}
 }
