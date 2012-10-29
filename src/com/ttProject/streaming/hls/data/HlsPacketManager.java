@@ -34,7 +34,6 @@ public class HlsPacketManager implements IMediaPacketManager {
 		buffer.put(data);
 		buffer.flip();
 		List<IMediaPacket> result = new ArrayList<IMediaPacket>();
-		// bufferにデータがはいったので、188バイトずつ読み込む
 		while(buffer.remaining() > 0) {
 			HlsPacket packet = analizePacket(buffer);
 			if(packet == null) {

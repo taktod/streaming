@@ -60,13 +60,13 @@ public class TakPacketManager implements IMediaPacketManager {
 		}
 		if(packet.analize(buffer)) {
 			currentPacket = null;
-//			return packet;
+			return packet;
 		}
 		else {
 			currentPacket = packet;
-//			return null;
+			return null;
 		}
-		System.exit(0);
-		return null;
+//		System.exit(0);
+//		return null;
 	}
 }

@@ -7,6 +7,10 @@ import java.nio.ByteBuffer;
  */
 public class HlsHeaderPacket extends HlsPacket {
 	@Override
+	public boolean isHeader() {
+		return true;
+	}
+	@Override
 	public boolean analize(ByteBuffer buffer) {
 		// header処理
 		while(buffer.remaining() >= 188) {

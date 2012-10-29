@@ -10,6 +10,10 @@ import java.nio.ByteBuffer;
  * @author taktod
  */
 public class WebMHeaderPacket extends WebMPacket{
+	@Override
+	public boolean isHeader() {
+		return true;
+	}
 	// 本来はここで、header情報として、timecodeScaleを確認して、unitが何秒であるか確認したり、やっておきたいところ。
 	// とりあえず、ヘッダーをつくるにあたって必要ないので、無視しておく。
 	/*

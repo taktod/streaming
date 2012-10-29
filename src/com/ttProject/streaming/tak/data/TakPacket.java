@@ -2,6 +2,7 @@ package com.ttProject.streaming.tak.data;
 
 import java.nio.ByteBuffer;
 
+import com.flazr.util.Utils;
 import com.ttProject.streaming.data.IMediaPacket;
 
 /*
@@ -61,8 +62,8 @@ public abstract class TakPacket implements IMediaPacket {
 	}
 	private final byte AUDIO_TAG = 0x08;
 	private final byte VIDEO_TAG = 0x09;
-	private final byte META_TAG = 0x12;
-	private final byte FLV_TAG = 0x46;
+	private final byte META_TAG  = 0x12;
+	private final byte FLV_TAG   = 0x46;
 	@SuppressWarnings("unused")
 	private byte[] FlvHeader = {0x46, 0x4C, 0x56, // flv
 			0x01, // version
@@ -75,6 +76,8 @@ public abstract class TakPacket implements IMediaPacket {
 	 */
 	public boolean analize(ByteBuffer buffer) {
 		while(buffer.remaining() > 0) {
+			// タグの解析がきちんとできたら、次にいく。
+			// できなかったら巻き戻して応答を返し、再度やりなおし。
 			int position = buffer.position();
 			Boolean result = null;
 			// bufferの頭の部分を確認
@@ -84,13 +87,15 @@ public abstract class TakPacket implements IMediaPacket {
 			case AUDIO_TAG:
 				// firstタグのみ、Headerへ
 				System.out.println("audio");
-				return false;
+				result = analizeAudioData(buffer);
+				break;
 			case VIDEO_TAG:
 				// firstタグのみ、Headerへ
 				System.out.println("video");
-				return false;
+				result = analizeVideoData(buffer);
+				break;
 			case META_TAG:
-				// 基本Header行
+				// 基本Header行き(とりいそぎ、無視する方向で実行します。)
 				System.out.println("meta");
 				result = analizeMetaData(buffer);
 				break;
@@ -103,6 +108,8 @@ public abstract class TakPacket implements IMediaPacket {
 				throw new RuntimeException("解析できないデータがきました。");
 			}
 			if(result != null) {
+				// 読み込み位置を元に戻す
+				buffer.position(position);
 				return result;
 			}
 		}
@@ -116,12 +123,74 @@ public abstract class TakPacket implements IMediaPacket {
 		// とりいそぎ、ヘッダタイムを取得しなくてはいけない要素はないっぽい。
 		return ((header[1] << 16) + (header[2] << 8) + header[3] + header[4] << 24) & 0xFFFFFFFF;
 	}
+	private Boolean analizeAudioData(ByteBuffer buffer) {
+		if(buffer.remaining() < 11) {
+			// header部分取得に満たない場合
+			return false;
+		}
+		// ヘッダ情報を取得
+		byte[] header = new byte[11];
+		buffer.get(header);
+		// データサイズを確認する。
+		int size = getSizeFromHeader(header);
+		System.out.println("データサイズ:" + size + " :" + buffer.remaining());
+		if(buffer.remaining() < size + 4) {
+			// 十分な量のデータがない。
+			return false;
+		}
+		// データを取り出す
+		byte[] body = new byte[size];
+		// データの先頭1文字目を確認することでコーデック情報とかがわかります。
+		// 0xF0でエンコーダーがなにであるかわかる。
+		// AACの場合は、先頭の1バイトは、拡張データになります。
+		// 拡張データが0の場合はAACのシーケンスヘッダなので、header側に保持しておかないといけない。
+		buffer.get(body);
+		int length = size > 12 ? 12 : size;
+		System.out.println(Utils.toHex(body, 0, length, true));
+		// 4byte終端データを確認する。
+		byte[] tail = new byte[4];
+		buffer.get(tail);
+		return null;
+	}
+	private Boolean analizeVideoData(ByteBuffer buffer) {
+		if(buffer.remaining() < 11) {
+			// header部分取得に満たない場合
+			return false;
+		}
+		// ヘッダ情報を取得
+		byte[] header = new byte[11];
+		buffer.get(header);
+		// データサイズを確認する。
+		int size = getSizeFromHeader(header);
+		System.out.println("データサイズ:" + size + " :" + buffer.remaining());
+		if(buffer.remaining() < size + 4) {
+			// 十分な量のデータがない。
+			return false;
+		}
+		// データを取り出す
+		byte[] body = new byte[size];
+		// データの先頭1文字目を確認することでコーデック情報とかがわかります。
+		// 0xF0でキーフレームかどうか判定できる。
+		// 0x0Fで、フレームタイプがわかる。
+		// H.264の場合は、先頭の4バイトは、拡張データになります。
+		// TODO 本当にそうなっているか確認しなければいけない。0:AVCのヘッダデータ
+		buffer.get(body);
+		System.out.println(Utils.toHex(body, 0, 12, true));
+		// 4byte終端データを確認する。
+		byte[] tail = new byte[4];
+		buffer.get(tail);
+		return null;
+	}
+	/**
+	 * metaタグ解析動作
+	 * @param buffer 解析するバッファ(flvデータの先頭であることを期待します。)
+	 * @return true:今回のパケットの解析が完了した。false:中途でデータがたりなくなった。null:解析は完了し、次のデータを解析する必要がある場合
+	 */
 	private Boolean analizeMetaData(ByteBuffer buffer) {
 		if(buffer.remaining() < 11) {
 			// header部分取得に満たない場合
 			return false;
 		}
-		int position = buffer.position();
 		// ヘッダ情報を取得
 		byte[] header = new byte[11];
 		buffer.get(header);
@@ -129,9 +198,16 @@ public abstract class TakPacket implements IMediaPacket {
 		int size = getSizeFromHeader(header);
 		if(buffer.remaining() < size + 4) {
 			// 十分な量のデータがない。
+			return false;
 		}
 		// データを取り出す
-		return false;
+		byte[] body = new byte[size];
+		// metaデータは特に興味ないので、すてておく。
+		buffer.get(body);
+		// 4byte終端データを確認する。
+		byte[] tail = new byte[4];
+		buffer.get(tail);
+		return null;
 	}
 	/**
 	 * Flvのヘッダであるか確認します。

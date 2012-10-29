@@ -17,4 +17,9 @@ public interface IMediaPacket {
 	 * @return true:解析完了パケットが書き込みreadyになっています。false:解析途上もっとデータが必要。
 	 */
 	public boolean analize(ByteBuffer buffer);
+	/**
+	 * header用のパケットであるか応答する。
+	 * @return
+	 */
+	public boolean isHeader();
 }

@@ -108,6 +108,7 @@ public class FlvManager {
 			// 処理続行は無理
 			return false;
 		}
+		logger.info(coder.toString());
 		if(coder.getCodecType() == ICodec.Type.CODEC_TYPE_AUDIO) {
 			// 音声コーデック
 			if(inputAudioCoder == null) {
@@ -231,6 +232,7 @@ public class FlvManager {
 			logger.info("エラー", e);
 		}// */
 
+		logger.info(packet.toString());
 		// 入力コーダーを確認します。
 		if(!checkInputCoder(packet)) {
 			return true;

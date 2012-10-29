@@ -3,6 +3,10 @@ package com.ttProject.streaming.tak.data;
 import java.nio.ByteBuffer;
 
 public class TakHeaderPacket extends TakPacket {
+	@Override
+	public boolean isHeader() {
+		return true;
+	}
 	public TakHeaderPacket() {
 		super(null);
 	}

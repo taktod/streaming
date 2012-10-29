@@ -4,6 +4,10 @@ import java.nio.ByteBuffer;
 
 public class HlsMediaPacket extends HlsPacket {
 	@Override
+	public boolean isHeader() {
+		return false;
+	}
+	@Override
 	public boolean analize(ByteBuffer buffer) {
 		while(buffer.remaining() >= 188) {
 			int position = buffer.position();

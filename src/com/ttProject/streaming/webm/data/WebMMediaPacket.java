@@ -10,6 +10,10 @@ public class WebMMediaPacket extends WebMPacket {
 	public static final int TimecodeId = 0xE7;
 	// 先頭はClusterIDであるはず。(currentHeaderは処理途上でbyteBufferの中身がなくなった場合に、あとから参照し直すことがある。)
 	private long currentHeader = 0x00L;
+	@Override
+	public boolean isHeader() {
+		return false;
+	}
 	/**
 	 * おわったから終わった分とデータがたりなくておわったものと２つある。
 	 */
