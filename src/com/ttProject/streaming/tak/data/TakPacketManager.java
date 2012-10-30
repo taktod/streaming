@@ -35,9 +35,12 @@ public class TakPacketManager implements IMediaPacketManager {
 				break;
 			}
 			else {
-				packet.writeData();
 				result.add(packet);
 			}
+		}
+		// header用のデータが書き込み前状態になっている場合は、応答listの先頭にくっつけて応答します。
+		if(!headerPacket.isSaved()) {
+			result.add(0, headerPacket);
 		}
 		return result;
 	}
@@ -49,7 +52,6 @@ public class TakPacketManager implements IMediaPacketManager {
 	private TakPacket analizePacket(ByteBuffer buffer) {
 		TakPacket packet = currentPacket;
 		if(packet == null) {
-			int position = buffer.position();
 			// headerかどうか判定する。
 			// httpTakStreamingについては、判定できないので(中途で更新される可能性もある)
 			// この動作ってmediaパケットとheaderパケットの違いって意味あるんだろうか？(生データ変換なら、中途でデータが追加されることもありうる(xuggle変換なら、中途でパケットが増えてもコンテナ開き直しになる。))

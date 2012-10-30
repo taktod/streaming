@@ -138,6 +138,7 @@ public class VideoEncodeManager {
 		int retval = -1;
 		IPacket outPacket = IPacket.make();
 		
+//		@SuppressWarnings("unused")
 		int numBytesConsumed = 0;
 		if(picture.isComplete()) {
 			retval = videoCoder.encodeVideo(outPacket, picture, 0);

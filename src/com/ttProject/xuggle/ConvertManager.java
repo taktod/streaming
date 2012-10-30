@@ -327,20 +327,20 @@ public class ConvertManager {
 		for(AudioResampleManager audioResampleManager : audioResampleManagers) {
 //			logger.info("リサンプルかけます。");
 			// リサンプルかける。
-			List<Future<?>> list = new ArrayList<Future<?>>();
+//			List<Future<?>> list = new ArrayList<Future<?>>();
 			final IAudioSamples resampledData = audioResampleManager.resampleAudio(decodedSamples);
 			// エンコード処理をマルチスレッド化しておく。
 			for(final AudioEncodeManager audioEncodeManager : audioResampleManager.getEncodeManagers()) {
 				// エンコードを実行する。
-				list.add(executors.submit(new Runnable() {
-					@Override
-					public void run() {
+//				list.add(executors.submit(new Runnable() {
+//					@Override
+//					public void run() {
 //						logger.info("エンコードを実行します。");
 						audioEncodeManager.encodeAudio(resampledData);
-					}
-				}));
+//					}
+//				}));
 			}
-			waitForFutures(list);
+//			waitForFutures(list);
 		}
 	}
 	/**
@@ -354,19 +354,19 @@ public class ConvertManager {
 		// データをリサンプルする。
 		for(VideoResampleManager videoResampleManager : videoResampleManagers) {
 			// リサンプルをかける。
-			List<Future<?>> list = new ArrayList<Future<?>>();
+//			List<Future<?>> list = new ArrayList<Future<?>>();
 			final IVideoPicture resampledData = videoResampleManager.resampleVideo(decodedPicture);
 			// エンコード処理をマルチスレッド化しておく。
 			for(final VideoEncodeManager videoEncodeManager : videoResampleManager.getEncodeManagers()) {
 				// エンコード実行
-				list.add(executors.submit(new Runnable() {
-					@Override
-					public void run() {
+//				list.add(executors.submit(new Runnable() {
+//					@Override
+//					public void run() {
 						videoEncodeManager.encodeVideo(resampledData);
-					}
-				}));
+//					}
+//				}));
 			}
-			waitForFutures(list);
+//			waitForFutures(list);
 		}
 	}
 	/**

@@ -194,7 +194,7 @@ public class FlvManager {
 			retval = inputContainer.readNextPacket(packet);
 			if(retval < 0) {
 				logger.error("パケット取得エラー: {}, {}", IError.make(retval), retval);
-				if("Resource temporarily unavailable".equals(IError.make(retval).getDescription())) {
+				if(retval == -11) {
 					// リソースが一時的にない場合は、このまま続けていれば動作可能になるので、スルーする。
 					return true;
 				}

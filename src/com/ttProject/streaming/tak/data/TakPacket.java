@@ -1,8 +1,10 @@
 package com.ttProject.streaming.tak.data;
 
+import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.WritableByteChannel;
 
-import com.flazr.util.Utils;
 import com.ttProject.streaming.data.IMediaPacket;
 
 /*
@@ -13,8 +15,10 @@ import com.ttProject.streaming.data.IMediaPacket;
  */
 public abstract class TakPacket implements IMediaPacket {
 	private final TakHeaderPacket headerPacket;
+//	private int timePassed = 0; // 取得秒数
 	public TakPacket(TakHeaderPacket headerPacket) {
 		this.headerPacket = headerPacket; 
+//		timePassed = 0;
 	}
 	/** パケットの実データ保持 */
 	private ByteBuffer buffer = null;
@@ -64,7 +68,6 @@ public abstract class TakPacket implements IMediaPacket {
 	private final byte VIDEO_TAG = 0x09;
 	private final byte META_TAG  = 0x12;
 	private final byte FLV_TAG   = 0x46;
-	@SuppressWarnings("unused")
 	private byte[] FlvHeader = {0x46, 0x4C, 0x56, // flv
 			0x01, // version
 			0x05, /* 1:video + 4:audio */
@@ -86,22 +89,22 @@ public abstract class TakPacket implements IMediaPacket {
 			switch(header) {
 			case AUDIO_TAG:
 				// firstタグのみ、Headerへ
-				System.out.println("audio");
+//				System.out.println("audio");
 				result = analizeAudioData(buffer);
 				break;
 			case VIDEO_TAG:
 				// firstタグのみ、Headerへ
-				System.out.println("video");
+//				System.out.println("video");
 				result = analizeVideoData(buffer);
 				break;
 			case META_TAG:
 				// 基本Header行き(とりいそぎ、無視する方向で実行します。)
-				System.out.println("meta");
+//				System.out.println("meta");
 				result = analizeMetaData(buffer);
 				break;
 			case FLV_TAG:
 				// FLV_TAGデータ、これ以降のデータはHEADERパケットにはいるべき
-				System.out.println("flv");
+//				System.out.println("flv");
 				result = analizeFlvHeader(buffer);
 				break;
 			default:
@@ -116,13 +119,18 @@ public abstract class TakPacket implements IMediaPacket {
 		return false;
 	}
 	private int getSizeFromHeader(byte[] header) {
-		return ((header[1] << 16) + (header[2] << 8) + header[3]) & 0x00FFFFFF;
+		return (((header[1] & 0xFF) << 16) + ((header[2] & 0xFF) << 8) + (header[3] & 0xFF));
 	}
 	@SuppressWarnings("unused")
 	private long getTimeFromHeader(byte[] header) {
 		// とりいそぎ、ヘッダタイムを取得しなくてはいけない要素はないっぽい。
-		return ((header[1] << 16) + (header[2] << 8) + header[3] + header[4] << 24) & 0xFFFFFFFF;
+		return (((header[4] & 0xFF) << 16) + ((header[5] & 0xFF) << 8) + (header[6] & 0xFF) + ((header[7] & 0xFF) << 24));
 	}
+	/**
+	 * オーディオデータを解析する。
+	 * @param buffer
+	 * @return
+	 */
 	private Boolean analizeAudioData(ByteBuffer buffer) {
 		if(buffer.remaining() < 11) {
 			// header部分取得に満たない場合
@@ -133,23 +141,38 @@ public abstract class TakPacket implements IMediaPacket {
 		buffer.get(header);
 		// データサイズを確認する。
 		int size = getSizeFromHeader(header);
-		System.out.println("データサイズ:" + size + " :" + buffer.remaining());
 		if(buffer.remaining() < size + 4) {
 			// 十分な量のデータがない。
 			return false;
 		}
 		// データを取り出す
 		byte[] body = new byte[size];
-		// データの先頭1文字目を確認することでコーデック情報とかがわかります。
-		// 0xF0でエンコーダーがなにであるかわかる。
-		// AACの場合は、先頭の1バイトは、拡張データになります。
-		// 拡張データが0の場合はAACのシーケンスヘッダなので、header側に保持しておかないといけない。
 		buffer.get(body);
-		int length = size > 12 ? 12 : size;
-		System.out.println(Utils.toHex(body, 0, length, true));
 		// 4byte終端データを確認する。
 		byte[] tail = new byte[4];
 		buffer.get(tail);
+		// コーデック確認
+		switch((body[0] & 0xF0) >>> 4) {
+		case 10: // AAC
+			// AACなら次のパケットを確認して、headerであるか確認する。
+			if(body[1] == 0x00) {
+				// headerだった
+				ByteBuffer sequenceHeader = ByteBuffer.allocate(size + 4 + 11);
+				sequenceHeader.put(header);
+				sequenceHeader.put(body);
+				sequenceHeader.put(tail);
+				sequenceHeader.flip();
+				headerPacket.analize(sequenceHeader);
+			}
+			break;
+		default: // その他
+			break;
+		}
+		// シーケンスヘッダも書き込んでおく。(書き込んでおかないと、中途で変更があったときに困る。)
+		ByteBuffer saveBuffer = getBuffer(size+ 4 + 11);
+		saveBuffer.put(header);
+		saveBuffer.put(body);
+		saveBuffer.put(tail);
 		return null;
 	}
 	private Boolean analizeVideoData(ByteBuffer buffer) {
@@ -162,7 +185,6 @@ public abstract class TakPacket implements IMediaPacket {
 		buffer.get(header);
 		// データサイズを確認する。
 		int size = getSizeFromHeader(header);
-		System.out.println("データサイズ:" + size + " :" + buffer.remaining());
 		if(buffer.remaining() < size + 4) {
 			// 十分な量のデータがない。
 			return false;
@@ -175,10 +197,42 @@ public abstract class TakPacket implements IMediaPacket {
 		// H.264の場合は、先頭の4バイトは、拡張データになります。
 		// TODO 本当にそうなっているか確認しなければいけない。0:AVCのヘッダデータ
 		buffer.get(body);
-		System.out.println(Utils.toHex(body, 0, 12, true));
 		// 4byte終端データを確認する。
 		byte[] tail = new byte[4];
 		buffer.get(tail);
+		boolean isSequenceHeader = false;
+		// コーデック確認
+		switch((body[0] & 0x0F)) {
+		case 7: // AVC
+			// AVCなら次のパケットを確認して、headerであるか確認する。
+			if((body[0] & 0x10) == 0x10 && body[1] == 0x00) {
+				// headerだった
+				ByteBuffer sequenceHeader = ByteBuffer.allocate(size + 4 + 11);
+				sequenceHeader.put(header);
+				sequenceHeader.put(body);
+				sequenceHeader.put(tail);
+				sequenceHeader.flip();
+				headerPacket.analize(sequenceHeader);
+				isSequenceHeader = true;
+			}
+			break;
+		default: // その他
+			break;
+		}
+		// sequenceデータではなく
+		// キーフレームだった場合はパケットの境目と判定しなければいけない。
+		if((body[0] & 0x10) == 0x10 && !isSequenceHeader) {
+			if(getBufferSize() != 0) {
+				// バッファサイズがたまっている場合は、終端がきたことになるので、分割する。
+				System.out.println("分割ポイントがきました。");
+				return true;
+			}
+		}
+		// ここでバッファにカキコする。
+		ByteBuffer saveBuffer = getBuffer(size+ 4 + 11);
+		saveBuffer.put(header);
+		saveBuffer.put(body);
+		saveBuffer.put(tail);
 		return null;
 	}
 	/**
@@ -233,17 +287,28 @@ public abstract class TakPacket implements IMediaPacket {
 				}
 			}
 		}
-		headerPacket.analize(ByteBuffer.wrap(FlvHeader));
+		ByteBuffer headerBuffer = ByteBuffer.allocate(FlvHeader.length);
+		headerBuffer.put(FlvHeader);
+		headerBuffer.flip();
+		headerPacket.analize(headerBuffer);
 		// MediaTagには書き込まない。
 		return null;
 	}
-	
-	
-	
-	
-	
+
+	private static int num = 0;
 	@Override
 	public void writeData() {
 		System.out.println("データの書き込みを実行します。");
+		try {
+			WritableByteChannel channel = Channels.newChannel(new FileOutputStream("/home/taktod/デスクトップ/xtest/mario." + num + ".flv"));
+			buffer.flip();
+			channel.write(buffer);
+		}
+		catch (Exception e) {
+			// TODO: handle exception
+		}
+		finally {
+			num ++;
+		}
 	}
 }

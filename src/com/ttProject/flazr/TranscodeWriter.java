@@ -80,17 +80,11 @@ public class TranscodeWriter implements RtmpWriter {
 	public void write(RtmpMessage message) {
 		final RtmpHeader header = message.getHeader();
 		if(header.isAggregate()) {
-			int difference = -1;
 			final ChannelBuffer in = message.encode();
 			while(in.readable()) {
 				final FlvAtom flvAtom = new FlvAtom(in);
-				final RtmpHeader subHeader = flvAtom.getHeader();
-				if(difference == -1) {
-					difference = subHeader.getTime() - header.getTime();
-				}
 				final int absoluteTime = flvAtom.getHeader().getTime();
 				channelTimes[primaryChannel] = absoluteTime;
-				subHeader.setTime(subHeader.getTime() - difference);
 				write(flvAtom); // 書き込む
 			}
 		}
