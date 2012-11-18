@@ -30,7 +30,7 @@ public class Setting {
 	private final String userHome;
 	private final Map<String, String> envExtra = new HashMap<String, String>();
 	private Setting() {
-		duration = 2; // 分割は2秒ごとにしておく。
+		duration = 5; // 分割は2秒ごとにしておく。
 		userHome = System.getProperty("user.home");
 		// process用のコマンドとその出力のデータをいれておく。
 		processCommand = "java -cp test.jar:lib/netty-3.1.5.GA.jar com.ttProject.process.ProcessEntry ";

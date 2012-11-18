@@ -1,11 +1,13 @@
-package com.ttProject.streaming.m3u8;
+package com.ttProject.segment.m3u8;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +23,10 @@ public class M3u8Manager {
 	private final String header;
 	private final String allowCache;
 	private final String targetDuration;
-	private final List<M3u8Element> elementData;
+	private List<M3u8Element> elementData;
+	private static final Map<String, List<M3u8Element>> elementDataMap = new HashMap<String, List<M3u8Element>>();
+	private Integer num;
+	private static final Map<String, Integer> numMap = new HashMap<String, Integer>();
 	private final String m3u8File;
 	private final Integer limit = 3; // limitの設定は固定3でいいはずだが、動作検証で全データ出力させてみたいときもあるので、注意が必要。
 	/**
@@ -34,7 +39,16 @@ public class M3u8Manager {
 		targetDuration = "#EXT-X-TARGETDURATION:" + Setting.getInstance().getDuration();
 		this.m3u8File  = m3u8File;
 		if(limit != null) {
-			elementData = new ArrayList<M3u8Element>();
+			elementData = elementDataMap.get(m3u8File);
+			if(elementData == null) {
+				elementData = new ArrayList<M3u8Element>();
+			}
+			elementDataMap.put(m3u8File, elementData);
+			num = numMap.get(m3u8File);
+			if(num == null) {
+				num = 0;
+			}
+			numMap.put(m3u8File, num);
 		}
 		else {
 			// ファイルに先頭の情報を書き込む
@@ -82,12 +96,15 @@ public class M3u8Manager {
 				pw.println(allowCache);
 				pw.println(targetDuration);
 				pw.print("#EXT-X-MEDIA-SEQUENCE:");
-				pw.println(startPos);
-				if(startPos == 1) {
-					pw.println("#EXT-X-DISCONTINUITY");
-				}
+				num ++;
+				numMap.put(m3u8File, num);
+				pw.println(num);
 				// 内容を書き込む
 				for(M3u8Element data : elementData) {
+					if(data.isFirst()) {
+//						pw.println("#EXT-X-ENDLIST");// x endlistをいれてしまうと、動画がおわってしまう。
+						pw.println("#EXT-X-DISCONTINUITY");
+					}
 					pw.println(data.getInfo());
 					pw.println(data.getHttp());
 				}

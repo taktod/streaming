@@ -12,9 +12,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.ttProject.Setting;
+import com.ttProject.segment.m3u8.M3u8Manager;
 import com.ttProject.streaming.IMediaPacket;
 import com.ttProject.streaming.IMediaPacketManager;
-import com.ttProject.streaming.m3u8.M3u8Manager;
 import com.ttProject.streaming.mpegts.MpegtsPacketManager;
 
 /**

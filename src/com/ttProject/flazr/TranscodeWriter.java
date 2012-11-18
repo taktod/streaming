@@ -19,6 +19,7 @@ import com.ttProject.process.ConvertProcessHandler;
 
 /**
  * 変換用のwriter動作
+ * TODO 生データから、flvセグメントを生成する動作もつくっておきたいところ。
  * @author taktod
  */
 public class TranscodeWriter implements RtmpWriter {

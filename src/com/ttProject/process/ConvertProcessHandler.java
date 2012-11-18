@@ -87,6 +87,7 @@ public class ConvertProcessHandler {
 			dataSendingThread.start();
 			
 			// 必要な数プロセスをつくっておく。
+			// TODO この部分のデータは、設定依存にすべき。
 			ProcessHandler process = new ProcessHandler(portNumber, Quality.High, "mpegts", this);
 			processList.add(process);
 			keyList.add(process.getKey());

@@ -1,4 +1,4 @@
-package com.ttProject.streaming.m3u8;
+package com.ttProject.segment.m3u8;
 
 /**
  * 保持エレメント
@@ -9,6 +9,7 @@ public class M3u8Element {
 	private String http;
 	private String info;
 	private int index;
+	private boolean isFirst;
 	/**
 	 * コンストラクタ
 	 */
@@ -17,6 +18,7 @@ public class M3u8Element {
 		this.http = http;
 		this.info = "#EXTINF:" + duration;
 		this.index = index;
+		this.isFirst = index == 1;
 	}
 	public String getFile() {
 		return file;
@@ -29,5 +31,8 @@ public class M3u8Element {
 	}
 	public int getIndex() {
 		return index;
+	}
+	public boolean isFirst() {
+		return isFirst;
 	}
 }
