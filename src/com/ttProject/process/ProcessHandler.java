@@ -113,7 +113,7 @@ public class ProcessHandler {
 			// 読み込みデータはthreadでうけとって、出力にまわす必要あり。
 			final ReadableByteChannel outputChannel = Channels.newChannel(process.getInputStream());
 			final IMediaPacketManager packetManager = new MpegtsPacketManager();
-			final M3u8Manager m3u8Manager = new M3u8Manager(setting.getPath() + handler.getName() + "_" + quality.toString() + ".m3u8");
+			final M3u8Manager m3u8Manager = M3u8Manager.getInstance(setting.getPath() + handler.getName() + "_" + quality.toString() + ".m3u8");
 			final File tsFile = new File(setting.getPath() + handler.getName() + "_" + quality.toString());
 			Thread t = new Thread(new Runnable() {
 				private int counter = 0;

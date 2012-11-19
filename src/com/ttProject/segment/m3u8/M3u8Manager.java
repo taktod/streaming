@@ -19,36 +19,47 @@ import com.ttProject.Setting;
  * @author taktod
  */
 public class M3u8Manager {
+	private static final Map<String, M3u8Manager> managerMap = new HashMap<String, M3u8Manager>();
 	private final Logger logger = LoggerFactory.getLogger(M3u8Manager.class);
 	private final String header;
 	private final String allowCache;
 	private final String targetDuration;
 	private List<M3u8Element> elementData;
-	private static final Map<String, List<M3u8Element>> elementDataMap = new HashMap<String, List<M3u8Element>>();
 	private Integer num;
-	private static final Map<String, Integer> numMap = new HashMap<String, Integer>();
+	// このあたりのstaticデータの管理をするやつがm3u8Managerということにしておきたい。
+//	private static final Map<String, List<M3u8Element>> elementDataMap = new HashMap<String, List<M3u8Element>>();
+//	private static final Map<String, Integer> numMap = new HashMap<String, Integer>();
 	private final String m3u8File;
 	private final Integer limit = 3; // limitの設定は固定3でいいはずだが、動作検証で全データ出力させてみたいときもあるので、注意が必要。
+	private long lastUpdate;
+	public static M3u8Manager getInstance(String m3u8File) {
+		M3u8Manager instance = managerMap.get(m3u8File);
+		if(instance == null) {
+			instance = new M3u8Manager(m3u8File);
+			managerMap.put(m3u8File, instance);
+		}
+		return instance;
+	}
 	/**
 	 * コンストラクタ
 	 * @param m3u8File
 	 */
-	public M3u8Manager(String m3u8File) {
+	private M3u8Manager(String m3u8File) {
 		header         = "#EXTM3U";
 		allowCache     = "#EXT-X-ALLOW-CACHE:NO";
 		targetDuration = "#EXT-X-TARGETDURATION:" + Setting.getInstance().getDuration();
 		this.m3u8File  = m3u8File;
 		if(limit != null) {
-			elementData = elementDataMap.get(m3u8File);
-			if(elementData == null) {
+//			elementData = elementDataMap.get(m3u8File);
+//			if(elementData == null) {
 				elementData = new ArrayList<M3u8Element>();
-			}
-			elementDataMap.put(m3u8File, elementData);
-			num = numMap.get(m3u8File);
-			if(num == null) {
+//			}
+//			elementDataMap.put(m3u8File, elementData);
+//			num = numMap.get(m3u8File);
+//			if(num == null) {
 				num = 0;
-			}
-			numMap.put(m3u8File, num);
+//			}
+//			numMap.put(m3u8File, num);
 		}
 		else {
 			// ファイルに先頭の情報を書き込む
@@ -65,6 +76,7 @@ public class M3u8Manager {
 				logger.error("m3u8ファイル書き込み中にエラー", e);
 			}
 		}
+		lastUpdate = System.currentTimeMillis();
 	}
 	/**
 	 * データの書き込み処理
@@ -90,14 +102,14 @@ public class M3u8Manager {
 				}
 			}
 			try {
-				int startPos = index - limit < 0 ? 1 : index - limit + 1;
+//				int startPos = index - limit < 0 ? 1 : index - limit + 1;
 				PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(m3u8File, false)));
 				pw.println(header);
 				pw.println(allowCache);
 				pw.println(targetDuration);
 				pw.print("#EXT-X-MEDIA-SEQUENCE:");
 				num ++;
-				numMap.put(m3u8File, num);
+//				numMap.put(m3u8File, num);
 				pw.println(num);
 				// 内容を書き込む
 				for(M3u8Element data : elementData) {
@@ -133,5 +145,9 @@ public class M3u8Manager {
 				logger.error("m3u8ファイル書き込み中にエラー", e);
 			}
 		}
+		lastUpdate = System.currentTimeMillis();
+	}
+	public static void fillEmptySpace() {
+		
 	}
 }

@@ -79,6 +79,7 @@ public class TranscodeWriter implements RtmpWriter {
 								stop();
 							}
 						}
+						// m3u8についてしらべて、映像がながれていなかったら、waitで更新しておく。
 						Thread.sleep(1000);
 					}
 				}
