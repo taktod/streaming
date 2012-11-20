@@ -65,7 +65,7 @@ public class ProcessHandler {
 			StringBuilder command = new StringBuilder();
 			command.append(setting.getProcessCommand()).append(" ");
 			command.append(port).append(" ");
-			command.append(key).append(" | ");
+			command.append(key).append(" 2>java" + quality.toString() + ".log | ");
 			command.append("avconv -i - ");
 			if(handler.getAudioFlg()) {
 				command.append("-acodec libmp3lame -ac 2 -ar 44100 -ab 96k ");
@@ -93,7 +93,9 @@ public class ProcessHandler {
 			}
 			command.append("-f ");
 			command.append(format);
-			command.append(" -");
+			command.append(" - 2>ffmpeg");
+			command.append(quality.toString());
+			command.append(".log");
 			logger.info(command.toString());
 			ProcessBuilder processBuilder = new ProcessBuilder("/bin/bash", "-c", command.toString());
 			// 環境変数に追加データがある場合は、ここで処理する。
