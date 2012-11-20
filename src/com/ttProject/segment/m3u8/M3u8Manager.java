@@ -148,6 +148,7 @@ public class M3u8Manager {
 		lastUpdate = System.currentTimeMillis();
 	}
 	public static void fillEmptySpace() {
-		
+		// 最終更新から1.5秒以上たっているデータがある場合は、データを追記する。
+		System.out.println("更新の計算を実施する。");
 	}
 }

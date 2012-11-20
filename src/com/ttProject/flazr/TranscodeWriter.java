@@ -16,6 +16,7 @@ import com.flazr.rtmp.RtmpHeader;
 import com.flazr.rtmp.RtmpMessage;
 import com.flazr.rtmp.RtmpWriter;
 import com.ttProject.process.ConvertProcessHandler;
+import com.ttProject.segment.m3u8.M3u8Manager;
 
 /**
  * 変換用のwriter動作
@@ -80,6 +81,7 @@ public class TranscodeWriter implements RtmpWriter {
 							}
 						}
 						// m3u8についてしらべて、映像がながれていなかったら、waitで更新しておく。
+						M3u8Manager.fillEmptySpace();
 						Thread.sleep(1000);
 					}
 				}
