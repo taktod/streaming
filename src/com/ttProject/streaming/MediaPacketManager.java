@@ -14,7 +14,7 @@ public abstract class MediaPacketManager implements IMediaPacketManager {
 	/** 現在処理中のパケット参照 */
 	private IMediaPacket currentPacket = null;
 	/** 処理済み書き込み経過時刻 */
-	private int passedTime = 0;
+	private float passedTime = 0;
 	/**
 	 * パケットの解析処理
 	 */
@@ -67,14 +67,14 @@ public abstract class MediaPacketManager implements IMediaPacketManager {
 	 * 経過秒数を増やす
 	 * @param time
 	 */
-	public void addPassedTime(int time) {
+	public void addPassedTime(float time) {
 		passedTime += time;
 	}
 	/**
 	 * 経過秒数を取得する。
 	 * @return 秒数
 	 */
-	public int getPassedTime() {
+	public float getPassedTime() {
 		return passedTime;
 	}
 }

@@ -79,7 +79,7 @@ public class MpegtsMediaPacket extends MpegtsPacket {
 					getManager().setTimeTic(tic);
 					++pos;
 					// durationを更新
-					setDuration((int)(getManager().getPassedTic() / 90000) - getManager().getPassedTime());
+					setDuration((int)(getManager().getPassedTic() / 9000 - getManager().getPassedTime() * 10) / 10f);
 				}
 			}
 		}
@@ -116,7 +116,7 @@ public class MpegtsMediaPacket extends MpegtsPacket {
 					// メディアトラックであることを確認
 					if(data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x01) {
 						// 経過時間を取得
-						int passedTime = (int)((getManager().getPassedTic() - startTic) / 90000);
+						float passedTime = (getManager().getPassedTic() - startTic) / 90000f;
 						// この分割する部分だけ、なんとかしておく必要あり。
 						if(passedTime >= Setting.getInstance().getDuration()) {
 							// 経過時間が分割秒数を超えている場合は、次のパケットにすすむ

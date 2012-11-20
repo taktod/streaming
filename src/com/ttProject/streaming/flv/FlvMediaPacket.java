@@ -155,7 +155,7 @@ public class FlvMediaPacket extends FlvPacket {
 			if(passedTime >= Setting.getInstance().getDuration()) {
 				// TODO ここに書いておくと音声のみのflvの分割が発生しなくなるので、なんとかしておいたほうがいいと思う。
 				// バッファサイズがたまっている場合は、終端がきたことになるので、分割する。
-				setDuration((int)(getManager().getPassedTime() / 1000) - getManager().getPassedTime());
+				setDuration(getManager().getPassedTime() / 1000 - getManager().getPassedTime());
 				// 記録済み時間について記録しておく。
 				getManager().addPassedTime(getDuration());
 				System.out.println("分割ポイントがきました。");

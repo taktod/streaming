@@ -28,5 +28,5 @@ public interface IMediaPacket {
 	 * packetの秒数を取得する。
 	 * @return
 	 */
-	public int getDuration();
+	public float getDuration();
 }

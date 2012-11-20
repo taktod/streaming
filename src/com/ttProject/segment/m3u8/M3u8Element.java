@@ -13,7 +13,7 @@ public class M3u8Element {
 	/**
 	 * コンストラクタ
 	 */
-	public M3u8Element(String file, String http, int duration, int index) {
+	public M3u8Element(String file, String http, float duration, int index) {
 		this.file = file;
 		this.http = http;
 		this.info = "#EXTINF:" + duration;

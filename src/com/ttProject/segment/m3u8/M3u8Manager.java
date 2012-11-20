@@ -50,16 +50,8 @@ public class M3u8Manager {
 		targetDuration = "#EXT-X-TARGETDURATION:" + Setting.getInstance().getDuration();
 		this.m3u8File  = m3u8File;
 		if(limit != null) {
-//			elementData = elementDataMap.get(m3u8File);
-//			if(elementData == null) {
-				elementData = new ArrayList<M3u8Element>();
-//			}
-//			elementDataMap.put(m3u8File, elementData);
-//			num = numMap.get(m3u8File);
-//			if(num == null) {
-				num = 0;
-//			}
-//			numMap.put(m3u8File, num);
+			elementData = new ArrayList<M3u8Element>();
+			num = 0;
 		}
 		else {
 			// ファイルに先頭の情報を書き込む
@@ -69,6 +61,7 @@ public class M3u8Manager {
 				pw.println(header);
 				pw.println(allowCache);
 				pw.println(targetDuration);
+				pw.println("#EXT-X-VERSION:3");
 				pw.close();
 				pw = null;
 			}
@@ -86,7 +79,7 @@ public class M3u8Manager {
 	 * @param index
 	 * @param endFlg
 	 */
-	public void writeData(String target, String http, int duration, int index, boolean endFlg) {
+	public void writeData(String target, String http, float duration, int index, boolean endFlg) {
 		M3u8Element element = new M3u8Element(target, http, duration, index);
 		if(limit != null) {
 			// limitが設定されている場合は、m3u8上のデータ量がきまっている。
@@ -102,19 +95,17 @@ public class M3u8Manager {
 				}
 			}
 			try {
-//				int startPos = index - limit < 0 ? 1 : index - limit + 1;
 				PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(m3u8File, false)));
 				pw.println(header);
 				pw.println(allowCache);
 				pw.println(targetDuration);
+				pw.println("#EXT-X-VERSION:3");
 				pw.print("#EXT-X-MEDIA-SEQUENCE:");
 				num ++;
-//				numMap.put(m3u8File, num);
 				pw.println(num);
 				// 内容を書き込む
 				for(M3u8Element data : elementData) {
 					if(data.isFirst()) {
-//						pw.println("#EXT-X-ENDLIST");// x endlistをいれてしまうと、動画がおわってしまう。
 						pw.println("#EXT-X-DISCONTINUITY");
 					}
 					pw.println(data.getInfo());
@@ -149,6 +140,6 @@ public class M3u8Manager {
 	}
 	public static void fillEmptySpace() {
 		// 最終更新から1.5秒以上たっているデータがある場合は、データを追記する。
-		System.out.println("更新の計算を実施する。");
+//		System.out.println("更新の計算を実施する。");
 	}
 }

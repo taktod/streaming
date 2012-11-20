@@ -12,7 +12,7 @@ import java.nio.channels.WritableByteChannel;
 public abstract class MediaPacket implements IMediaPacket {
 	/** 保持データ実体 */
 	private ByteBuffer buffer;
-	private int duration = 0;
+	private float duration = 0;
 	/**
 	 * 書き込み酔うのバッファ参照
 	 * TODO この方法だと、bufferが大きくなると動作が重くなります。
@@ -61,14 +61,14 @@ public abstract class MediaPacket implements IMediaPacket {
 	 * パケットの長さ設定
 	 * @param duration
 	 */
-	protected void setDuration(int duration) {
+	protected void setDuration(float duration) {
 		this.duration = duration;
 	}
 	/**
 	 * パケットの長さ取得
 	 */
 	@Override
-	public int getDuration() {
+	public float getDuration() {
 		return duration;
 	}
 
